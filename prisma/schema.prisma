@@ -1,0 +1,205 @@
+generator client {
+	provider      = "prisma-client-js"
+	binaryTargets = ["native", "debian-openssl-1.0.x", "windows"]
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "ERD.svg"
+  theme    = "forest"
+}
+
+datasource db {
+	provider = "postgresql"
+	url      = env("DATABASE_URL")
+}
+
+model User {
+	id           Int      		 @id @default(autoincrement())
+	email        String  	     @unique
+	passwordHash String
+	firstName    String
+	lastName     String
+	role         Role  		     @default(STUDENT)
+	tutor        TutorProfile?
+	parent       ParentProfile?
+	student      StudentProfile?
+	attachments  Attachment[]
+	createdAt	 DateTime 		 @default(now())
+	updatedAt    DateTime 		 @updatedAt
+}
+
+model TutorProfile {
+	id          Int            @id @default(autoincrement())
+	user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+	userId      Int            @unique
+	bio         String?
+	phone       String?
+	city		Int?
+	dispos		Availibility[]
+	experiences Experience[]
+	subjects    Course[]
+	lessons     Lesson[]
+	createdAt   DateTime       @default(now())
+	updatedAt   DateTime       @updatedAt
+}
+
+model ParentProfile {
+	id          Int              @id @default(autoincrement())
+	user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+	userId      Int              @unique
+	children	StudentProfile[]
+	phone		String?
+	city		String?
+	createdAt   DateTime         @default(now())
+	updatedAt   DateTime         @updatedAt
+}
+
+model StudentProfile {
+	id          Int            @id @default(autoincrement())
+	user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+	userId      Int            @unique
+	parent		ParentProfile? @relation(fields: [parentId], references: [id], onDelete: Cascade)
+	parentId	Int?
+	bio         String?
+	phone		String?
+	city		String?
+	birthDate   DateTime
+	address		Address?       @relation(fields: [addressId], references: [id])
+	addressId	Int?
+	level		Level?
+	lessons     Lesson[]
+	createdAt   DateTime       @default(now())
+	updatedAt   DateTime       @updatedAt
+}
+
+model Availibility {
+	id         Int            @id @default(autoincrement())
+	tutor      TutorProfile   @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+	tutorId    Int
+	day		   Int			  // Lundi = 0 - Dimanche = 6
+	startMin   Int			  // stocké en minutes 15h30 = 930
+	endMin     Int
+
+	@@index([tutorId])
+}
+
+model Experience {
+	id         Int            @id @default(autoincrement())
+	tutor      TutorProfile   @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+	tutorId    Int
+	title	   String
+	location   String
+	startYear  Int
+	endYear    Int?
+	createdAt  DateTime		  @default(now())
+
+	@@index([tutorId])
+}
+
+model Course {
+	id         Int            @id @default(autoincrement())
+	tutor      TutorProfile   @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+	tutorId    Int
+	title      String
+	subject    String
+	level      Level          @default(LYCEE)
+	bio        String
+	hourlyRate Int
+	duration   Int
+	mode       Mode           @default(DOMICILE)
+	lesson	   Lesson[]
+	createdAt  DateTime       @default(now())
+
+	@@index([tutorId])
+}
+
+model Lesson {
+	id             Int            @id @default(autoincrement())
+	student        StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+	studentId      Int
+	tutor          TutorProfile   @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+	tutorId        Int
+	course         Course		  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+	courseId       Int
+	startDate      DateTime
+	rating         Int?
+	review         String?
+	attachments	   Attachment[]
+
+	@@unique([tutorId, startDate])
+}
+
+model Conversation {
+	id        Int       	 @id @default(autoincrement())
+	tutorId   Int
+	studentId Int
+	messages  Message[]
+	createdAt DateTime  	 @default(now())
+
+	@@unique([tutorId, studentId])
+}
+
+model Message {
+	id             Int          @id @default(autoincrement())
+	conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+	conversationId Int
+	senderId       Int
+	body           String
+	isRead		   Boolean		@default(false)
+	attachments	   Attachment[]
+	createdAt      DateTime     @default(now())
+
+	@@index([conversationId, createdAt])
+}
+
+model Attachment {
+	id			 Int      @id @default(autoincrement())
+	originalName String
+	filename     String
+	mimeType     String
+	size         Int
+	userId		 Int
+	user		 User	  @relation(fields: [userId], references: [id], onDelete: Cascade)
+	messageId    Int?
+	message      Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+	lessonId     Int?
+	lesson       Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+	createdAt    DateTime @default(now())
+
+	@@index([messageId])
+	@@index([lessonId])
+}
+
+model Address {
+	id         Int              @id @default(autoincrement())
+	street     String
+	complement String?
+	postalCode String
+	city       String
+	cityCode   String?
+	latitude   Float?
+	longitude  Float?
+	students   StudentProfile[]
+	createdAt  DateTime         @default(now())
+	updatedAt  DateTime         @updatedAt
+}
+
+enum Role {
+	STUDENT
+	PARENT
+	TUTOR
+}
+
+enum Mode {
+	DOMICILE
+	EN_LIGNE
+	TOUS
+}
+
+enum Level {
+	PRIMAIRE
+	COLLEGE
+	LYCEE
+	SUP
+}

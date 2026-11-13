@@ -1,0 +1,39 @@
+{
+	"name": "projet-indus",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"postinstall": "prisma skills sync || exit 0"
+	},
+	"devDependencies": {
+		"@mermaid-js/mermaid-cli": "^11.17.1",
+		"@sveltejs/adapter-auto": "^8.0.0",
+		"@sveltejs/adapter-node": "^6.0.2",
+		"@sveltejs/kit": "^3.2.0",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@types/bcrypt": "^6.0.0",
+		"@types/node": "^26.6.6",
+		"prisma": "^6.19.3",
+		"prisma-erd-generator": "^3.2.1",
+		"svelte": "^5.57.2",
+		"svelte-check": "^4.6.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.3.0"
+	},
+	"dependencies": {
+		"@prisma/client": "^6.19.3",
+		"bcrypt": "^6.0.0",
+		"dotenv": "^18.0.10"
+	}
+}

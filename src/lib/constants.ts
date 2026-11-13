@@ -1,0 +1,12 @@
+export const FORMAT_LEVEL = {
+    "PRIMAIRE": "en primaire",
+    "COLLEGE": "au collège",
+    "LYCEE": "au lycée",
+    "SUP": "en prépa ou supérieur",
+};
+
+export const FORMAT_MODE = {
+    "TOUS": "en ligne ou à domicile",
+    "EN_LIGNE": "en ligne",
+    "DOMICILE": "à domicile"
+};
