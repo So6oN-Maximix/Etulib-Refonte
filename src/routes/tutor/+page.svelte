@@ -1,10 +1,13 @@
 <script lang="ts">
     import type { PageProps } from "./$types";
     import { enhance } from "$app/forms";
+    import { page } from "$app/state";
 
     import { formatDuration } from "#lib/utils";
     import { FORMAT_MODE } from "#lib/constants";
-    import { mondayOf, addDays, formatDay } from "#lib/week";
+    import { mondayOf, addDays, formatDay, toISODate } from "#lib/week";
+    import { buildSlots, fromStoredDate } from "#lib/slots";
+    import { showToast } from "#lib/toast.svelte.ts";
 
     let { data, form }: PageProps = $props();
 
@@ -17,9 +20,25 @@
     const weekLabel = $derived(`${formatDay(weekStart)} — ${formatDay(addDays(weekStart, 6))}`);
     const shiftWeek = (n: number) => (weekStart = addDays(weekStart, n * 7));
 
+    let selectedSlot = $state<Date | null>(null);
+    const busy = $derived(
+        data.takenLessons.map((lesson) => {
+            const duration = data.courses.find((c) => c.id === lesson.courseId)?.duration ?? 0;
+            const start = fromStoredDate(lesson.startDate);
+            const end = new Date(start);
+            end.setMinutes(end.getMinutes() + duration);
+            return { start, end };
+        })
+    );
+    const daySlots = $derived(selectedCourse ? buildSlots(data.availibilities, selectedCourse.duration, weekStart, busy) : []);
+
+    const slotDate = $derived(selectedSlot ? toISODate(selectedSlot) : "");
+    const slotStartMin = $derived(selectedSlot ? selectedSlot.getHours() * 60 + selectedSlot.getMinutes() : "");
+
     function selectCourse(course: Course) {
         const firstSelection = selectedCourse === null;
         selectedCourse = course;
+        selectedSlot = null;
         if (firstSelection && matchMedia("(max-width:900px)").matches) {
             const reduceMotion = matchMedia("(prefers-reduced-motion:reduce)").matches;
             bookingEl?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
@@ -126,14 +145,39 @@
         <small class="course-info" id="booking-info">{selectedCourse ? courseInfo(selectedCourse) : ""}</small>
         <div class="week-picker">
             <button type="button" class="btn-week" aria-label="Semaine précédente" disabled={weekStart <= mondayOf(new Date())} onclick={() => shiftWeek(-1)}>‹</button>
-            <span class="week-label" id="week-label" data-data="13/10/2026">{weekLabel}</span>
+            <span class="week-label" id="week-label">{weekLabel}</span>
             <button type="button" class="btn-week" aria-label="Semaine suivante" onclick={() => shiftWeek(1)}>›</button>
         </div>
         <h3>Prochains créneaux</h3>
         <div class="slots">
-
+            {#if !selectedCourse}
+                <p>Choisissez un cours pour voir les créneaux.</p>
+            {:else if daySlots.length === 0}
+                <p>Aucun créneau disponible cette semaine.</p>
+            {:else}
+                {#each daySlots as day (day.day)}
+                    <p>{day.label}</p>
+                    <div>
+                        {#each day.slots as slot (slot.start.getTime())}
+                            {@const isSelected = selectedSlot?.getTime() === slot.start.getTime()}
+                            <a href="/" class:selected={isSelected} onclick={ event => {
+                                event.preventDefault();
+                                selectedSlot = isSelected ? null : slot.start;
+                            }}>{slot.time}</a>
+                        {/each}
+                    </div>
+                {/each}
+            {/if}
         </div>
-        <a href="/" class="btn-search">Réserver un cours</a>
+        <form method="POST" action={`?id=${page.url.searchParams.get("id")}&/reserve`} use:enhance>
+            <input type="hidden" name="courseId" value={selectedCourse?.id ?? ""}>
+            <input type="hidden" name="date" value={slotDate}>
+            <input type="hidden" name="startMin" value={slotStartMin}>
+            {#if form?.action === "reserve" && form?.error}
+            <p class="form-msg" role="alert">{form.error}</p>
+            {/if}
+            <button type="submit" class="btn-search" disabled={!selectedCourse || !selectedSlot}>Réserver un cours</button>
+        </form>
         <a href="/" class="link-quiet">Envoyer un message</a>
     </aside>
 </div>
@@ -310,6 +354,10 @@
     .course-info{display:block;margin-top:.3rem;color:var(--ink);font-size:.9rem;font-weight:600}
 
     .booking .course-info{margin-top:-.4rem}
+
+    .booking form .btn-search{width:100%}
+    .booking form .btn-search:disabled{opacity:.5;cursor:not-allowed}
+    .booking form .form-msg{margin-bottom:.75rem}
 
     .slots a{transition:background .15s,color .15s,border-color .15s}
 
