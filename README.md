@@ -22,8 +22,8 @@ Etulib-Refonte est la réécriture de la première version d'Etulib (Express + H
 
 - [x] Inscription avec choix du rôle (parent, élève ou tuteur)
 - [x] Mots de passe hachés avec bcrypt, validation des données côté serveur
-- [ ] Connexion, sessions et déconnexion
-- [ ] Pages de profil pour chaque rôle
+- [x] Connexion, sessions et déconnexion
+- [x] Pages de profil pour chaque rôle
 - [ ] Recherche de tuteurs
 - [ ] Messagerie et notifications de messages non lus
 
@@ -108,13 +108,16 @@ Etulib-Refonte/
 │   └── migrations/          # Historique des migrations
 ├── src/
 │   ├── lib/
+│   │   ├── actions/
+│   │   │   └── ScollSpy.ts  # Pour le défliement des pages profils
 │   │   ├── server/
 │   │   │   └── prisma.ts    # Client Prisma (côté serveur uniquement)
 │   │   └── ...              # Composants et utilitaires réutilisables
 │   ├── routes/
 │   │   ├── signup/          # Page d'inscription et son action serveur
 │   │   └── ...              # Autres pages
-│   └── app.css              # Styles globaux
+│   ├── app.css              # Styles globaux
+│   └── hooks.server.tss     # Middleware pour les routes
 ├── static/                  # Fichiers statiques
 ├── Dockerfile               # Image de l'application
 ├── docker-compose.yml       # PostgreSQL et application
@@ -157,9 +160,9 @@ docker compose up -d --build
 
 ## Feuille de route
 
-- [ ] Gestion des sessions (cookie + `hooks.server.ts`)
-- [ ] Page de connexion et déconnexion
-- [ ] Profils parent, élève et tuteur
+- [x] Gestion des sessions (cookie + `hooks.server.ts`)
+- [x] Page de connexion et déconnexion
+- [x] Profils parent, élève et tuteur
 - [ ] Recherche et filtrage des tuteurs
 - [ ] Messagerie
 - [ ] Tests automatisés
