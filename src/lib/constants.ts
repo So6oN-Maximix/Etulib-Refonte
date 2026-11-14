@@ -3,6 +3,7 @@ export const FORMAT_LEVEL = {
     "COLLEGE": "au collège",
     "LYCEE": "au lycée",
     "SUP": "en prépa ou supérieur",
+    "NULL": ""
 };
 
 export const FORMAT_MODE = {

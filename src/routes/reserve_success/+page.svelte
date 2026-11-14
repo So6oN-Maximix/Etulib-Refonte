@@ -1,3 +1,9 @@
+<script lang="ts">
+    import type { PageProps } from "./$types";
+    import { formatDuration } from "#lib/utils";
+    let { data }: PageProps = $props();
+</script>
+
 <section class="auth seyes" style="padding: 1rem 0; width: 100%; min-height: auto;">
     <div class="container" style="display: flex; justify-content: center;">
         
@@ -15,26 +21,28 @@
             <div class="tinted" style="padding: 0.85rem 1rem; border-radius: 6px; margin-bottom: 1.25rem; text-align: left; font-size: 0.9rem;">
                 <ul style="list-style: none;">
                     <li style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--line);" id="tutor">
-                        <span style="color: var(--muted);">Professeur :</span> 
-                        <b style="color: var(--ink);" id="success-tutor-name">Camille M.</b>
+                        <span style="color: var(--muted);">Professeur :</span>
+                        <b style="color: var(--ink);" id="success-tutor-name">{data.flash.tutor.firstName} {data.flash.tutor.lastName.toUpperCase()}</b>
                     </li>
                     <li style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--line);" id="subject">
-                        <span style="color: var(--muted);">Matière :</span> 
-                        <b style="color: var(--ink);" id="success-course">Mathématiques</b>
+                        <span style="color: var(--muted);">Matière :</span>
+                        <b style="color: var(--ink);" id="success-course">{data.flash.subject}</b>
                     </li>
                     <li style="display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--line);" id="date">
-                        <span style="color: var(--muted);">Date :</span> 
-                        <b style="color: var(--ink);" id="success-date">Jeu. 29 oct. à 15h30</b>
+                        <span style="color: var(--muted);">Date :</span>
+                        { const date = new Date(data.flash.startDate); }
+                        { const formatDate = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }); }
+                        <b style="color: var(--ink);" id="success-date">{formatDate.charAt(0).toUpperCase() + formatDate.slice(1)} à {formatDuration(date.getMinutes())}</b>
                     </li>
                     <li style="display: flex; justify-content: space-between; padding: 0.35rem 0;" id="duration">
-                        <span style="color: var(--muted);">Durée :</span> 
-                        <b style="color: var(--ink);" id="success-duration">1 h 30</b>
+                        <span style="color: var(--muted);">Durée :</span>
+                        <b style="color: var(--ink);" id="success-duration">{formatDuration(data.flash.duration)}</b>
                     </li>
                 </ul>
             </div>
 
             <div class="form-actions" style="justify-content: center; flex-wrap: wrap; gap: 0.75rem;">
-                <a href="/dashboard-student" class="btn-search" style="padding: 0.7rem 1.4rem;">Voir mon agenda</a>
+                <a href="/" class="btn-search" style="padding: 0.7rem 1.4rem;">Voir mon agenda</a>
                 <a href="/" class="btn-line" style="padding: 0.7rem 1.4rem;">Retour à l'accueil</a>
             </div>
         </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { PageProps } from './$types';
     import { scrollSpy } from "#lib/actions/ScrollSpy";
+    import { FORMAT_LEVEL } from "#lib/constants";
     let { data }: PageProps = $props();
 </script>
 
@@ -10,7 +11,7 @@
             <span class="avatar big">{(data.user.firstName[0] + data.user.lastName[0]).toUpperCase()}</span>
             <div>
                 <h1>{data.user.firstName} {data.user.lastName.toUpperCase()}</h1>
-                <p>Parent de Léa, élève de seconde. Membre depuis {data.user.creationDate}.</p>
+                <p>Eleve{(data.student.level) ? " " + FORMAT_LEVEL[data.student.level as keyof typeof FORMAT_LEVEL] : ""}. Membre depuis {data.user.creationDate}.</p>
             </div>
             <a href="#infos" class="btn-line">Modifier mes informations</a>
         </div>

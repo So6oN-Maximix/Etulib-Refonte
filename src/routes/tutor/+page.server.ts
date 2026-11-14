@@ -53,7 +53,7 @@ export const load: PageServerLoad = async ({ url }) => {
 };
 
 export const actions: Actions = {
-    reserve: async ({ request, locals, url }) => {
+    reserve: async ({ request, locals, cookies }) => {
         if (!locals.user || !["PARENT", "STUDENT"].includes(locals.user.role)) return fail(403, { action: "reserve", error: "Non autorisé" });
 
         const formData = await request.formData();
@@ -72,7 +72,7 @@ export const actions: Actions = {
         try {
             const course = await prisma.course.findUnique({
                 where: { id },
-                select: { id: true, tutorId: true, duration: true }
+                select: { id: true, tutorId: true, duration: true, subject: true }
             });
             if (!course) return fail(404, { action: "reserve", error: "Cours introuvable." });
 
@@ -96,15 +96,22 @@ export const actions: Actions = {
             });
             if (taken) return fail(400, { action: "reserve", error: "Ce cours est déjà réservé à cette heure" });
 
-            await prisma.lesson.create({
-                data: {
-                    studentId: locals.user.profileId!,
-                    tutorId: course.tutorId,
-                    courseId: id,
-                    startDate
-                }
-            });
+            const [ , tutorInfos] = await Promise.all([
+                await prisma.lesson.create({
+                    data: {
+                        studentId: locals.user.profileId!,
+                        tutorId: course.tutorId,
+                        courseId: id,
+                        startDate
+                    }
+                }),
+                await prisma.user.findFirst({
+                    where: { tutor: { id: course.tutorId } },
+                    select: { firstName: true, lastName: true }
+                })
+            ]);
             
+            cookies.set("flash", JSON.stringify({ tutor: tutorInfos, subject: course.subject, startDate, duration: course.duration }), { path: "/reserve_success", maxAge: 10 });
             redirect(303, "/reserve_success");
         } catch (error) { throw error };
     }
