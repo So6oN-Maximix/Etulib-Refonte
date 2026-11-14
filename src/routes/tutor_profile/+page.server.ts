@@ -2,6 +2,7 @@ import { error, fail } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
 import { formatPhoneUX } from "#lib/utils";
+import { minutesToTime, parseRanges, timeToMinutes } from "#lib/planner";
 
 const LEVELS = ["PRIMAIRE", "COLLEGE", "LYCEE", "SUP"] as const;
 type Level = (typeof LEVELS)[number];
@@ -11,18 +12,24 @@ type Mode = (typeof MODES)[number];
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.user || locals.user.role !== "TUTOR") throw error(403, "Accès refusé");
 
-    const [tutorProfile, tutorExp, tutorCourse] = await Promise.all([
+    const [tutorProfile, tutorExp, tutorCourse, getAvailibilities] = await Promise.all([
         prisma.tutorProfile.findUnique({
             where: { userId: locals.user.id },
-            select: { phone: true, city: true, bio: true }
+            select: { id: true, phone: true, city: true, bio: true }
         }),
         prisma.experience.findMany({
             where: { tutorId: locals.user.profileId! },
-            select: { id: true, title: true, location: true, startYear: true, endYear: true }
+            select: { id: true, title: true, location: true, startYear: true, endYear: true },
+            orderBy: [{ endYear: { sort: "desc", nulls: "first" } }, { startYear: "desc" }]
         }),
         prisma.course.findMany({
             where: {tutorId: locals.user.profileId!},
             select: { id: true, title: true, subject: true, bio: true, level: true, hourlyRate: true, duration: true, mode: true}
+        }),
+        prisma.availibility.findMany({
+            where: { tutorId: locals.user.profileId! },
+            select: { id: true, day: true, startMin: true, endMin: true },
+            orderBy: [{ day: "asc" }, { startMin: "asc" }]
         })
     ]);
 
@@ -30,16 +37,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 
     if (!tutorProfile) return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
-        tutor: { phone: "", city: "", bio: "" },
+        tutor: { id: 0, phone: "", city: "", bio: "" },
         exp: [],
-        courses: []
+        courses: [],
+        availibilities: []
     }
 
     return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         tutor: { ...tutorProfile, phone: formatPhoneUX(tutorProfile.phone || "") },
         exp: tutorExp,
-        courses: tutorCourse
+        courses: tutorCourse,
+        availibilities: getAvailibilities.map(availibility => {
+            return {
+                day: availibility.day,
+                start: minutesToTime(availibility.startMin),
+                end: minutesToTime(availibility.endMin)
+            };
+        })
     }
 };
 
@@ -188,5 +203,27 @@ export const actions: Actions = {
             });
             return { action: "bio", success: true };
         } catch (error) { throw error; }
+    },
+    saveAvailability: async ({ request, locals }) => {
+        if (!locals.user || locals.user.role !== "TUTOR") return fail(403, { action: "planner", error: "Non autorisé"});
+
+        const tutorId = locals.user.profileId!;
+        const data = await request.formData();
+        const ranges = parseRanges(String(data.get("planner") ?? "[]"));
+        if (!ranges) return fail(400, { action: "planner", error: "Disponibilités invalides." });
+    
+        await prisma.$transaction([
+            prisma.availibility.deleteMany({ where: { tutorId } }),
+            prisma.availibility.createMany({
+                data: ranges.map((r) => ({
+                    tutorId,
+                    day: r.day,
+                    startMin: timeToMinutes(r.start),
+                    endMin: timeToMinutes(r.end)
+                }))
+            })
+        ]);
+    
+        return { success: true };
     }
 };

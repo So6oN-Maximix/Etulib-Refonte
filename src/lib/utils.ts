@@ -9,3 +9,5 @@ export function formatDuration(minutes: number) {
 	const h = Math.floor(minutes / 60), m = minutes % 60;
 	return m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h00`;
 }
+
+export function formatHours(minutes: number) { return `${Math.floor(minutes / 60).toString().padStart(2, "0")}:${(minutes % 60).toString().padStart(2, "0")}`; }
