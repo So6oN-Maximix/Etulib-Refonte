@@ -1,7 +1,7 @@
 <footer class="site-footer">
 	<div class="container foot">
 		<div><a href="/" class="logo">Etulib</a><p>Le soutien scolaire, en ligne et près de chez vous.</p></div>
-		<div><h4>Élèves et parents</h4><a href="/">Trouver un prof</a><a href="/">Tarifs</a><a href="/">Aide</a></div>
+		<div><h4>Élèves et parents</h4><a href="/research">Trouver un prof</a><a href="/">Tarifs</a><a href="/">Aide</a></div>
 		<div><h4>Professeurs</h4><a href="/">Devenir tuteur</a><a href="/">Charte qualité</a></div>
 		<div><h4>Etulib</h4><a href="/">Mentions légales</a><a href="/">CGU</a><a href="/">Contact</a></div>
 	</div>

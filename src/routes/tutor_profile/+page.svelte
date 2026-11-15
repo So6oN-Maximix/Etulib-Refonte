@@ -11,6 +11,9 @@
     import Planner from "#lib/components/Planner.svelte";
     import { type Range, minutesToTime } from "#lib/planner";
 
+    import Autocomplete from "#lib/components/Autocomplete.svelte";
+    import { searchSubjects } from "#lib/autocomplete";
+
     let { data, form }: PageProps = $props();
     // svelte-ignore state_referenced_locally
     let ranges = $state<Range[]>(data.availibilities);
@@ -222,7 +225,7 @@
                 {/if}
                 <h3>Nouveau cours</h3>
                 <label class="full">Intitulé<input type="text" name="title" placeholder="Ex : Préparation au bac de maths" value={editingCourse?.title ?? ""}></label>
-                <label>Matière<input type="text" name="subject" value={editingCourse?.subject ?? ""}></label>
+                <label style="position: relative;">Matière<Autocomplete value={editingCourse?.subject ?? ""} search={searchSubjects} id="course-subject" name="subject" minChars={1} debounceMs={0} /></label>
                 <label>
                     Niveau
                     <select name="level" value={editingCourse?.level ?? ""}>
