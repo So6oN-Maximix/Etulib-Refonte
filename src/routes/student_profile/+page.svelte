@@ -71,8 +71,8 @@
                         <h3>{tutor.firstName} {tutor.lastName.toUpperCase()}</h3>
                         <p>{tutor.subjects.join(", ")} - {tutor.lessonCount} lesson{tutor.lessonCount > 1 ? "s" : ""}</p>
                     </div>
-                    <a href="/tutor?id={tutor.tutorId}" class="btn-line">Réserver</a>
-                    <a href="/documents" class="link-quiet">Documents</a>
+                    <a href="/documents" class="btn-line">Documents</a>
+                    <a href="/tutor?id={tutor.tutorId}" class="link-quiet">Profil</a>
                 </li>
                 {/each}
             </ul>
