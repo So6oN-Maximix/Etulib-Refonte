@@ -1,7 +1,9 @@
 <script lang="ts">
     import type { PageProps } from './$types';
     import { scrollSpy } from "#lib/actions/ScrollSpy";
-    import { FORMAT_LEVEL } from "#lib/constants";
+    import { FORMAT_LEVEL, FORMAT_MODE } from "#lib/constants";
+    import { formatDuration } from "#lib/utils";
+
     let { data }: PageProps = $props();
 </script>
 
@@ -30,8 +32,23 @@
     <div class="account">
         <section id="cours">
             <h2>Prochains cours</h2>
-            <ul class="lessons"></ul>
-            <p class="empty" hidden>Aucune réservation pour le moment</p>
+            {#if data.lessons.length > 0}
+            <ul class="lessons">
+                {#each data.lessons as lesson}
+                <li>
+                    <div class="date"><b>{lesson.dateParts[1]}</b>{lesson.dateParts[0]} {lesson.dateParts[2]}</div>
+                    <div class="who">
+                        <h3>{lesson.course.subject} avec {lesson.tutor.user.firstName} {lesson.tutor.user.lastName.toUpperCase()}</h3>
+                        <p>{formatDuration(lesson.startDate.getHours() * 60 + lesson.startDate.getMinutes())} à {formatDuration(lesson.endDate.getHours() * 60 + lesson.endDate.getMinutes())}, {FORMAT_MODE[lesson.course.mode]}</p>
+                    </div>
+                    <a href="/lesson_details?id={lesson.id}" class="btn-line">Details</a>
+                    <a href="/" class="link-quiet">Annuler</a>
+                </li>
+                {/each}
+            </ul>
+            {:else}
+            <p class="empty">Aucune réservation pour le moment</p>
+            {/if}
         </section>
 
         <section id="comptes-rendus">
@@ -74,5 +91,5 @@
 </div>
 
 <style>
-    @import "#lib/styles/profils.css";
+    @import "#lib/styles/profiles.css";
 </style>

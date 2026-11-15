@@ -183,7 +183,7 @@
 </div>
 
 <style>
-    @import "#lib/styles/profils.css";
+    @import "#lib/styles/profiles.css";
 
     .timeline {
         list-style: none;
