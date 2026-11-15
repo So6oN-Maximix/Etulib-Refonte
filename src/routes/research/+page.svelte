@@ -85,7 +85,6 @@
         {#if data.tutors.length > 0}
         <ul class="tutors">
             {#each data.tutors as tutor}
-            {console.log(tutor)}
             <li>
                 <span class="avatar">{(tutor.firstName[0] + tutor.lastName[0]).toUpperCase()}</span>
                 <div class="who">

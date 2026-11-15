@@ -64,6 +64,7 @@
     <aside class="side-nav" aria-label="Mon espace" use:scrollSpy>
         <a href="#apercu" aria-current="page">Aperçu</a>
         <a href="#cours">Prochains cours</a>
+        <a href="#eleves">Mes éleves</a>
         <a href="#dispos">Disponibilités</a>
         <a href="#fiche">Ma fiche publique</a>
         <a href="#parcours">Mon parcours</a>
@@ -89,7 +90,43 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
                 </button>
             </div>
-            <ul class="lessons"></ul>
+            {#if data.lessons.length > 0}
+            <ul class="lessons">
+                {#each data.lessons as lesson}
+                <li>
+                    <div class="date"><b>{lesson.dateParts[1]}</b>{lesson.dateParts[0]} {lesson.dateParts[2]}</div>
+                    <div class="who">
+                        <h3>{lesson.course.subject} avec {lesson.student.user.firstName} {lesson.student.user.lastName.toUpperCase()}</h3>
+                        <p>{formatDuration(lesson.startDate.getHours() * 60 + lesson.startDate.getMinutes())} à {formatDuration(lesson.endDate.getHours() * 60 + lesson.endDate.getMinutes())}, {FORMAT_MODE[lesson.course.mode]}</p>
+                    </div>
+                    <a href="/lesson_details?id={lesson.id}" class="btn-line">Details</a>
+                    <a href="/" class="link-quiet">Annuler</a>
+                </li>
+                {/each}
+            </ul>
+            {:else}
+            <p class="empty">Aucune réservation pour le moment</p>
+            {/if}
+        </section>
+
+        <section id="eleves">
+            <h2>Mes éleves</h2>
+            {#if data.students.length > 0}
+            <ul class="lessons">
+                {#each data.students as student}
+                <li>
+                    <span class="avatar">{(student.firstName[0] + student.lastName[0]).toUpperCase()}</span>
+                    <div class="who">
+                        <h3>{student.firstName} {student.lastName.toUpperCase()}</h3>
+                        <p>{student.subjects.join(", ")} - {student.lessonCount} lesson{student.lessonCount > 1 ? "s" : ""}</p>
+                    </div>
+                    <a href="/documents" class="btn-line">Documents</a>
+                </li>
+                {/each}
+            </ul>
+            {:else}
+            <p class="empty">Aucun élève n'a encore réserver de cours avec vous</p>
+            {/if}
         </section>
 
         <section id="dispos">
@@ -381,64 +418,6 @@
         margin-bottom: 1.5rem;
         color: var(--muted)
     }
-
-    .planner {
-        display: grid;
-        padding:0 1rem 1rem 0;
-        grid-template-columns: 48px repeat(7, minmax(0, 1fr));
-        max-width: 640px;
-        background: #fff;
-        border: 1.5px solid var(--ink);
-        border-radius: 6px;
-        box-shadow: 5px 5px 0 rgba(27, 42, 107, .12);
-        overflow: hidden;
-        user-select: none;
-        touch-action: none
-    }
-
-    .planner .day {
-        padding: .5rem 0;
-        text-align: center;
-        font: 600 .85rem "Bricolage Grotesque", sans-serif;
-        color: var(--ink);
-        background: var(--tint);
-        border-bottom: 1.5px solid var(--ink)
-    }
-
-    .planner .hour {
-        height: 22px;
-        padding: 2px .4rem 0 0;
-        text-align: right;
-        font-size: .72rem;
-        line-height: 1;
-        color: var(--muted)
-    }
-
-    .planner .cell {
-        height: 22px;
-        border-top: 1px solid var(--grid);
-        border-left: 1px solid var(--grid);
-        cursor: pointer
-    }
-
-    .planner .cell.hr {
-        border-top-color: var(--grid-main)
-    }
-
-    .planner .cell:hover {
-        background: var(--tint)
-    }
-
-    .planner .cell.on {
-        background: var(--ink);
-        border-color: rgba(255, 255, 255, .22)
-    }
-
-    .planner .cell:nth-child(8n){border-right:1px solid var(--grid)}
-
-    .planner .cell:nth-last-child(-n+7){border-bottom:1px solid var(--grid)}
-
-    .planner .day:nth-child(8){border-right:1px solid var(--grid)}
 
     #save-planner {
         margin-top: 1.25rem;
