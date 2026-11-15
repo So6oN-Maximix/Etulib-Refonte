@@ -35,7 +35,7 @@ model TutorProfile {
 	userId      Int            @unique
 	bio         String?
 	phone       String?
-	city		Int?
+	city		String?
 	dispos		Availibility[]
 	experiences Experience[]
 	subjects    Course[]

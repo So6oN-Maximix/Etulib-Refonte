@@ -14,7 +14,8 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"postinstall": "prisma skills sync || exit 0"
+		"postinstall": "prisma skills sync || exit 0",
+		"seed": "tsx prisma/seed.ts"
 	},
 	"devDependencies": {
 		"@mermaid-js/mermaid-cli": "^11.17.1",
@@ -28,6 +29,7 @@
 		"prisma-erd-generator": "^3.2.1",
 		"svelte": "^5.57.2",
 		"svelte-check": "^4.6.0",
+		"tsx": "^4.23.15",
 		"typescript": "^6.0.3",
 		"vite": "^8.3.0"
 	},
