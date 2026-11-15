@@ -1,9 +1,41 @@
-<script lang=ts>
+<script lang="ts">
     import type { PageProps } from "./$types";
+    import { enhance } from "$app/forms";
+    import { invalidateAll } from "$app/navigation";
+    import { page } from "$app/state";
     import { FORMAT_MODE, FORMAT_LEVEL } from "#lib/constants.ts";
     import { formatDuration } from "#lib/utils.ts";
+    import { showToast } from "#lib/toast.svelte";
 
-    const { data }: PageProps = $props();
+    const { data, form }: PageProps = $props();
+
+    const MAX_SIZE = 10 * 1024 * 1024;
+
+    let fileInput: HTMLInputElement | undefined = $state();
+    let uploading = $state(false);
+    let over = $state(false);
+    let sizeError = $state("");
+
+    const lessonId = $derived(page.url.searchParams.get("id"));
+
+    const ext = (name: string) => (name.split(".").pop() ?? "").slice(0, 4).toUpperCase();
+    const size = (bytes: number) => bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " Ko" : (bytes / 1024 / 1024).toFixed(1).replace(".", ",") + " Mo";
+    const sentOn = (date: Date) => {
+        const d = new Date(date);
+        return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", ...(d.getFullYear() < new Date().getFullYear() && { year: "numeric" }) });
+    };
+
+    function onFilesChosen(event: Event & { currentTarget: HTMLInputElement }) {
+        const input = event.currentTarget;
+        sizeError = "";
+        if (!input.files?.length) return;
+        if ([...input.files].some((f) => f.size > MAX_SIZE)) {
+            sizeError = "Fichier trop lourd (10 Mo maximum)";
+            input.value = "";
+            return;
+        }
+        input.form?.requestSubmit();
+    }
 </script>
 
 <section class="page-head seyes" id="header">
@@ -32,15 +64,67 @@
             <h2>Documents</h2>
             <p class="planner-hint">Échangez exercices, corrections et supports avec votre professeur. Formats acceptés : PDF, images et documents Word, 10 Mo maximum par fichier.</p>
 
-            <label class="dropzone" id="dropzone">
-                <strong>Déposer un document</strong>
-                <span>Glissez un fichier ici ou cliquez pour parcourir</span>
-                <input type="file" id="doc-input" name="document" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple>
-            </label>
-            <p class="form-msg" id="doc-msg" role="alert" hidden></p>
+            <form method="POST" action="?id={lessonId}&/uploadFile" enctype="multipart/form-data" use:enhance={() => {
+                uploading = true;
+                return async ({ result, update }) => {
+                    if (result.type === "success") showToast("Document envoyé");
+                    await update({ refreshAll: result.type === "failure" });
+                    if (fileInput) fileInput.value = "";
+                    uploading = false;
+                    update();
+                };
+            }}>
+                <label class="dropzone" class:over ondragover={() => (over = true)} ondragleave={() => (over = false)} ondrop={() => (over = false)}>
+                    <strong>{uploading ? "Envoi en cours…" : "Déposer un document"}</strong>
+                    <span>Glissez un fichier ici ou cliquez pour parcourir</span>
+                    <input type="file" name="document" bind:this={fileInput} onchange={onFilesChosen} disabled={uploading}
+                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" multiple>
+                </label>
+            </form>
+            {#if sizeError}
+            <p class="form-msg" role="alert">{sizeError}</p>
+            {:else if form?.action === "upload" && form?.error}
+            <p class="form-msg" role="alert">{form.error}</p>
+            {:else if form?.action === "delete" && form?.error}
+            <p class="form-msg" role="alert">{form.error}</p>
+            {/if}
 
-            <ul class="courses docs" id="docs-list"></ul>
-            <p class="empty" id="no-docs" hidden>Aucun document pour le moment. Déposez le premier ci-dessus.</p>
+            {#if data.files.length > 0}
+            <ul class="courses docs">
+                {#each data.files as file (file.id)}
+                <li>
+                    <span class="file-ext">{ext(file.originalName)}</span>
+                    <div class="who">
+                        <h3>{file.originalName}</h3>
+                        <p>Envoyé par {file.sender} le {sentOn(file.createdAt)} · {size(file.size)}</p>
+                    </div>
+                    <div class="course-actions">
+                        <a href="/" class="btn-line" download>Télécharger</a>
+                        {#if file.mine}
+                        <form method="POST" action="?id={lessonId}&/deleteFile" use:enhance={({ cancel }) => {
+                            if (!confirm("Supprimer ce document ?")) cancel();
+                            return async ({ update }) => { await update({ reset: false }); };
+                        }}>
+                            <input type="hidden" name="id" value={file.id}>
+                            <button type="submit" class="btn-trash" aria-label="Supprimer le document" title="Supprimer">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                </svg>
+                            </button>
+                        </form>
+                        {:else}
+                        <span class="btn-trash-placeholder" aria-hidden="true"></span>
+                        {/if}
+                    </div>
+                </li>
+                {/each}
+            </ul>
+            {:else}
+            <p class="empty">Aucun document pour le moment. Déposez le premier ci-dessus.</p>
+            {/if}
         </section>
 
         <section id="avis">

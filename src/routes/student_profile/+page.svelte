@@ -72,7 +72,7 @@
                         <p>{tutor.subjects.join(", ")} - {tutor.lessonCount} lesson{tutor.lessonCount > 1 ? "s" : ""}</p>
                     </div>
                     <a href="/tutor?id={tutor.tutorId}" class="btn-line">Réserver</a>
-                    <a href="/" class="link-quiet">Documents</a>
+                    <a href="/documents" class="link-quiet">Documents</a>
                 </li>
                 {/each}
             </ul>
