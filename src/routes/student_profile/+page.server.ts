@@ -2,11 +2,12 @@ import { error } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad } from "./$types";
 import { formatPhoneUX } from "#lib/utils";
+import { summarizeTutors } from "#lib/studentTutors.ts";
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.user || locals.user.role !== "STUDENT") throw error(403, "Accès refusé");
 
-    const [studentProfile, getLessons] = await Promise.all([
+    const [studentProfile, getLessons, getAllLessons] = await Promise.all([
         prisma.studentProfile.findUnique({
             where: { userId: locals.user.id },
             select: { phone: true, city: true, level: true }
@@ -39,6 +40,14 @@ export const load: PageServerLoad = async ({ locals }) => {
                 }
             },
             orderBy: { startDate: "asc" }
+        }),
+        prisma.lesson.findMany({
+            where: { studentId: locals.user.profileId! },
+            select: {
+                tutorId: true,
+                tutor: { select: { user: { select: { firstName: true, lastName: true } } } },
+                course: { select: { subject: true } }
+            }
         })
     ]);
 
@@ -61,12 +70,14 @@ export const load: PageServerLoad = async ({ locals }) => {
     if (!studentProfile) return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         student: { phone: "", city: "", level: "" },
-        lessons: []
+        lessons: [],
+        tutors: []
     }
 
     return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         student: { ...studentProfile, phone: formatPhoneUX(studentProfile.phone || "") },
-        lessons: formattedLessons
+        lessons: formattedLessons,
+        tutors: summarizeTutors(getAllLessons)
     }
 };

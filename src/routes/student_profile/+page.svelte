@@ -62,8 +62,23 @@
 
         <section id="favoris">
             <h2>Mes professeurs</h2>
-            <ul class="tutors compact"></ul>
+            {#if data.tutors.length > 0}
+            <ul class="tutors compact">
+                {#each data.tutors as tutor}
+                <li>
+                    <span class="avatar">{(tutor.firstName[0] + tutor.lastName[0]).toUpperCase()}</span>
+                    <div class="who">
+                        <h3>{tutor.firstName} {tutor.lastName.toUpperCase()}</h3>
+                        <p>{tutor.subjects.join(", ")} - {tutor.lessonCount} lesson{tutor.lessonCount > 1 ? "s" : ""}</p>
+                    </div>
+                    <a href="/tutor?id={tutor.tutorId}" class="btn-line">Réserver</a>
+                    <a href="/" class="link-quiet">Documents</a>
+                </li>
+                {/each}
+            </ul>
+            {:else}
             <p class="empty" hidden>Vous n'avez encore réserver aucun cours</p>
+            {/if}
         </section>
 
         <section id="infos">
@@ -92,4 +107,6 @@
 
 <style>
     @import "#lib/styles/profiles.css";
+
+    .tutors.compact li { grid-template-columns: auto 1fr auto auto; }
 </style>
