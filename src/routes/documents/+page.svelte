@@ -23,6 +23,15 @@
     </div>
 </section>
 
+{#if data.totalAttachments === 0}
+<div class="container empty-page">
+    <div class="empty">
+        <h3>Aucun document échangé pour le moment</h3>
+        <p>Les exercices, corrections et supports partagés lors de vos séances avec {data.contact.firstName} apparaîtront ici.</p>
+        <a href={data.isTutor ? "/tutor_profile" : "/student_profile"} class="btn-search">Voir mes cours pour déposer un fichier</a>
+    </div>
+</div>
+{:else}
 <div class="container layout">
     <aside class="side-nav" aria-label="Matières" use:scrollSpy>
         {#each data.attachments as attachment, index}
@@ -43,18 +52,22 @@
                             <h3>{lesson.theme}</h3>
                             <p>{(lesson.longDate.charAt(0).toUpperCase() + lesson.longDate.slice(1))} · {formatDuration(lesson.rawStartDate.getHours() * 60 + lesson.rawStartDate.getMinutes())} à {formatDuration(lesson.endDate.getHours() * 60 + lesson.endDate.getMinutes())}</p>
                         </div>
+                        {#if lesson.attachments.length > 0}
                         <ul class="docs">
-                            {#each lesson.attachments as attachment}
+                            {#each lesson.attachments as file}
                             <li>
-                                <span class="file-ext">{attachment.mimeType.toUpperCase()}</span>
+                                <span class="file-ext">{file.mimeType.toUpperCase()}</span>
                                 <div>
-                                    <div class="doc-name">{attachment.originalName}</div>
-                                    <div class="doc-meta">Envoyé par {attachment.user.id === data.userId ? "vous" : attachment.user.firstName} · {attachment.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · {size(attachment.size)}</div>
+                                    <div class="doc-name">{file.originalName}</div>
+                                    <div class="doc-meta">Envoyé par {file.user.id === data.userId ? "vous" : file.user.firstName} · {file.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · {size(file.size)}</div>
                                 </div>
                                 <a href="/" class="btn-line" download>Télécharger</a>
                             </li>
                             {/each}
                         </ul>
+                        {:else}
+                        <p class="no-doc-session">Aucun document déposé pour cette séance.</p>
+                        {/if}
                     </div>
                 </li>
                 {/each}
@@ -63,6 +76,7 @@
         {/each}
     </div>
 </div>
+{/if}
 
 <style>
     @import "#lib/styles/profiles.css";
@@ -113,6 +127,40 @@
 
     .doc-meta {
         font-size: .85rem;
+        color: var(--muted);
+    }
+
+    .empty-page {
+        padding-top: 3rem;
+        padding-bottom: 5rem;
+    }
+
+    .empty-page .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .75rem;
+        padding: 3rem 1.5rem;
+        background: #fff;
+    }
+
+    .empty-page .empty h3 {
+        font-size: 1.25rem;
+    }
+
+    .empty-page .empty p {
+        max-width: 460px;
+        margin-bottom: .5rem;
+    }
+
+    .empty-page .btn-search {
+        padding: .7rem 1.4rem;
+    }
+
+    .no-doc-session {
+        margin-top: .6rem;
+        font-size: .9rem;
+        font-style: italic;
         color: var(--muted);
     }
 </style>

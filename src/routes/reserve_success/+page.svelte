@@ -32,7 +32,7 @@
                         <span style="color: var(--muted);">Date :</span>
                         { const date = new Date(data.flash.startDate); }
                         { const formatDate = date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }); }
-                        <b style="color: var(--ink);" id="success-date">{formatDate.charAt(0).toUpperCase() + formatDate.slice(1)} à {formatDuration(date.getMinutes())}</b>
+                        <b style="color: var(--ink);" id="success-date">{formatDate.charAt(0).toUpperCase() + formatDate.slice(1)} à {formatDuration(date.getHours() * 60 + date.getMinutes())}</b>
                     </li>
                     <li style="display: flex; justify-content: space-between; padding: 0.35rem 0;" id="duration">
                         <span style="color: var(--muted);">Durée :</span>
