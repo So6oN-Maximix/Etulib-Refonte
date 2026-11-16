@@ -31,7 +31,16 @@
         })
     );
     const daySlots = $derived(selectedCourse ? buildSlots(data.availibilities, selectedCourse.duration, weekStart, busy) : []);
+    
+    let dialog: HTMLDialogElement | undefined = $state();
+    let theme = $state("");
+    let submitting = $state(false);
 
+    const slotLabel = $derived.by(() => {
+        if (!selectedSlot) return "";
+        const day = selectedSlot.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+        return `${day.charAt(0).toUpperCase() + day.slice(1)} à ${formatDuration(selectedSlot.getHours() * 60 + selectedSlot.getMinutes())}`;
+    });
     const slotDate = $derived(selectedSlot ? toISODate(selectedSlot) : "");
     const slotStartMin = $derived(selectedSlot ? selectedSlot.getHours() * 60 + selectedSlot.getMinutes() : "");
 
@@ -169,18 +178,50 @@
                 {/each}
             {/if}
         </div>
-        <form method="POST" action={`?id=${page.url.searchParams.get("id")}&/reserve`} use:enhance>
-            <input type="hidden" name="courseId" value={selectedCourse?.id ?? ""}>
-            <input type="hidden" name="date" value={slotDate}>
-            <input type="hidden" name="startMin" value={slotStartMin}>
-            {#if form?.action === "reserve" && form?.error}
-            <p class="form-msg" role="alert">{form.error}</p>
-            {/if}
-            <button type="submit" class="btn-search" disabled={!selectedCourse || !selectedSlot}>Réserver un cours</button>
-        </form>
+        <button type="button" class="btn-search" disabled={!selectedCourse || !selectedSlot} onclick={() => dialog?.showModal()}>Réserver un cours</button>
         <a href="/" class="link-quiet">Envoyer un message</a>
     </aside>
 </div>
+
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+<dialog class="modal" bind:this={dialog} aria-labelledby="modal-title" onclick={(event) => { if (event.target === dialog) dialog?.close(); }}>
+    <form class="form" method="POST" action={`?id=${page.url.searchParams.get("id")}&/reserve`} use:enhance={() => {
+        submitting = true;
+        return async ({ result, update }) => {
+            if (result.type === "success") {
+                showToast("Cours réservé !");
+                dialog?.close();
+                selectedSlot = null;
+                theme = "";
+            }
+            await update({ reset: false });
+            submitting = false;
+        };
+    }}>
+        <input type="hidden" name="courseId" value={selectedCourse?.id ?? ""}>
+        <input type="hidden" name="date" value={slotDate}>
+        <input type="hidden" name="startMin" value={slotStartMin}>
+
+        <h3 id="modal-title" class="full">Confirmer la réservation</h3>
+        <p class="modal-summary full"><b>{selectedCourse?.title}</b><br>{slotLabel}</p>
+
+        <label class="full">
+            Thème de la séance (facultatif)
+            <!-- svelte-ignore a11y_autofocus -->
+            <input type="text" name="theme" bind:value={theme} maxlength="100" autocomplete="off" autofocus placeholder="Ex : Probabilités conditionnelles">
+            <span class="theme-hint"><span>Indiquez le chapitre ou la notion à travailler, votre professeur pourra préparer le cours.</span><span>{theme.length}/100</span></span>
+        </label>
+
+        {#if form?.action === "reserve" && form?.error}
+        <p class="form-msg full" role="alert">{form.error}</p>
+        {/if}
+
+        <div class="form-actions">
+            <button type="button" class="btn-line" onclick={() => dialog?.close()}>Annuler</button>
+            <button type="submit" class="btn-search" class:is-loading={submitting} disabled={submitting}>Confirmer la réservation</button>
+        </div>
+    </form>
+</dialog>
 
 <style>
     @import "#lib/styles/profiles.css";
@@ -355,9 +396,35 @@
 
     .booking .course-info{margin-top:-.4rem}
 
-    .booking form .btn-search{width:100%}
-    .booking form .btn-search:disabled{opacity:.5;cursor:not-allowed}
-    .booking form .form-msg{margin-bottom:.75rem}
+    /* fenêtre de confirmation */
+    .modal{
+        width:min(460px,calc(100vw - 2rem));
+        margin:auto;
+        padding:0;
+        background:#fff;
+        color:var(--text);
+        border:1.5px solid var(--ink);
+        border-radius:6px;
+        box-shadow:5px 5px 0 rgba(27,42,107,.12)
+    }
+
+    .modal::backdrop{background:rgba(18,29,82,.45)}
+
+    .modal[open]{animation:modal-in .2s ease-out}
+
+    @keyframes modal-in{from{opacity:0;transform:translateY(8px)}}
+
+    .modal .form{padding:1.75rem}
+
+    .modal .form-actions{justify-content:flex-end}
+
+    .modal-summary{margin-top:-.4rem;color:var(--muted)}
+
+    .modal-summary b{color:var(--ink)}
+
+    .theme-hint{display:flex;justify-content:space-between;gap:1rem;font-size:.8rem;font-weight:400;color:var(--muted)}
+
+    .theme-hint span:last-child{flex:none}
 
     .slots a{transition:background .15s,color .15s,border-color .15s}
 

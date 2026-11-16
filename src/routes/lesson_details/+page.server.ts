@@ -20,8 +20,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
         prisma.lesson.findUnique({
             where: { id: LessonId },
             select: {
-                startDate: true,
                 course: true,
+                startDate: true,
+                theme: true,
                 student: {
                     select: {
                         user: {

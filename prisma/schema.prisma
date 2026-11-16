@@ -123,6 +123,7 @@ model Lesson {
 	course         Course		  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 	courseId       Int
 	startDate      DateTime
+    theme          String?
 	rating         Int?
 	review         String?
 	attachments	   Attachment[]

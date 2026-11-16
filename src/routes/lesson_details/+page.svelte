@@ -43,6 +43,9 @@
         <div class="page-head-inner lesson-head">
             <p class="crumb"><a href="/">Mes cours</a> / {data.lesson.course.subject}</p>
             <h1>{data.lesson.course.title}</h1>
+            {#if data.lesson.theme}
+            <p class="theme">Thème: <span class="note">{data.lesson.theme}</span></p>
+            {/if}
             <p>{data.lesson.textStartDate.charAt(0).toUpperCase() + data.lesson.textStartDate.slice(1)}, de {formatDuration(data.lesson.startDate.getHours() * 60 + data.lesson.startDate.getMinutes())} à {formatDuration(data.lesson.endDate.getHours() * 60 + data.lesson.endDate.getMinutes())}</p>
             <div class="tags">
                 <span class="status">{data.lesson.startDate > new Date() ? "À venir" : "Passée"}</span>
@@ -169,6 +172,10 @@
     @import "#lib/styles/profiles.css";
 
     .lesson-head .tags span{background:#fff}
+
+    .lesson-head h1{margin-bottom:.4rem}
+
+    .theme{display:flex;align-items:baseline;flex-wrap:wrap;gap:.6rem;margin-bottom:.5rem;font:600 1.2rem "Bricolage Grotesque",sans-serif;color:var(--ink);overflow-wrap:anywhere}
 
     .lesson-aside{max-height:calc(100vh - 7rem);overflow-y:auto}
 

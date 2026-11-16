@@ -23,7 +23,6 @@
 <div class="container layout">
     <aside class="side-nav" aria-label="Mon espace" use:scrollSpy>
         <a href="#cours" aria-current="page">Mes cours</a>
-        <a href="#comptes-rendus">Comptes rendus</a>
         <a href="#favoris">Mes professeurs</a>
         <a href="#infos">Mes informations</a>
         <a href="#paiements">Paiements et factures</a>
@@ -51,15 +50,6 @@
             {/if}
         </section>
 
-        <section id="comptes-rendus">
-            <h2>Dernier compte rendu</h2>
-            <figure class="quote small">
-                <blockquote>Léa a bien progressé sur les fonctions affines. On reprend les équations du second degré mercredi, avec deux exercices à préparer.</blockquote>
-                <span class="note" aria-hidden="true">Bon travail !</span>
-                <figcaption>Camille M., séance du 8 octobre</figcaption>
-            </figure>
-        </section>
-
         <section id="favoris">
             <h2>Mes professeurs</h2>
             {#if data.tutors.length > 0}
@@ -71,7 +61,7 @@
                         <h3>{tutor.firstName} {tutor.lastName.toUpperCase()}</h3>
                         <p>{tutor.subjects.join(", ")} - {tutor.lessonCount} lesson{tutor.lessonCount > 1 ? "s" : ""}</p>
                     </div>
-                    <a href="/documents" class="btn-line">Documents</a>
+                    <a href="/documents?id={tutor.tutorId}" class="btn-line">Documents</a>
                     <a href="/tutor?id={tutor.tutorId}" class="link-quiet">Profil</a>
                 </li>
                 {/each}

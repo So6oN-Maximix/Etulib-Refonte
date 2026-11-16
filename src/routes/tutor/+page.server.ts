@@ -61,6 +61,7 @@ export const actions: Actions = {
         const id = Number(formData.get("courseId") ?? 0);
         const date = String(formData.get("date") ?? "").trim();
         const startMin = Number(formData.get("startMin") ?? 0);
+        const theme = String(formData.get("theme") ?? "").trim();
         
         const startDate = (new Date(date));
         startDate.setMinutes(startMin);
@@ -102,7 +103,8 @@ export const actions: Actions = {
                         studentId: locals.user.profileId!,
                         tutorId: course.tutorId,
                         courseId: id,
-                        startDate
+                        startDate,
+                        theme
                     }
                 }),
                 await prisma.user.findFirst({

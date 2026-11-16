@@ -42,7 +42,7 @@
             </div>
 
             <div class="form-actions" style="justify-content: center; flex-wrap: wrap; gap: 0.75rem;">
-                <a href="/" class="btn-search" style="padding: 0.7rem 1.4rem;">Voir mon agenda</a>
+                <a href="/student_profile" class="btn-search" style="padding: 0.7rem 1.4rem;">Voir mon agenda</a>
                 <a href="/" class="btn-line" style="padding: 0.7rem 1.4rem;">Retour à l'accueil</a>
             </div>
         </div>
