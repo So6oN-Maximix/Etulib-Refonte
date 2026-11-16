@@ -10,6 +10,7 @@ node_modules
 
 # Uploads
 /uploads
+/src/lib/assets/*.png
 
 # OS
 .DS_Store

@@ -1,11 +1,15 @@
 <script lang="ts">
     import { enhance } from "$app/forms";
+    import logoSvg from "#lib/assets/favicon.svg";
     let { user } = $props();
 </script>
 
 <header class="site-header">
 	<div class="container header-inner">
-		<a href="/" class="logo">Etulib</a>
+		<a href="/" class="logo">
+			<img src={logoSvg} alt="" class="logo-icon" />
+			<span>Etulib</span>
+		</a>
 		<nav class="main-nav" aria-label="Navigation principale">
 			<a href="/research">Trouver un prof</a>
 			<a href="#methode">Comment ça marche ?</a>
@@ -38,8 +42,21 @@
     }
 
     .logo {
-        font-size: 1.45rem; font-weight: 700;
-        color: var(--ink); letter-spacing: -.03em
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-family: "Bricolage Grotesque", sans-serif;
+        font-size: 1.45rem; 
+        font-weight: 700;
+        color: var(--ink); 
+        letter-spacing: -.03em;
+        text-decoration: none;
+    }
+
+    .logo-icon {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
     }
 
     .main-nav { display: flex; gap: 1.75rem; margin: 0 auto 0 1rem }
