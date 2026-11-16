@@ -1,0 +1,32 @@
+name: Tests Unitaires
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Générer les types Prisma et SvelteKit
+        run: |
+          npx prisma generate
+          npx svelte-kit sync
+
+      - name: Lancer Vitest
+        run: npm test
