@@ -6,13 +6,16 @@ import { groupBySubject } from "#lib/documents";
 export const load: PageServerLoad = async ({ locals, url }) => {
     if (!locals.user || !["STUDENT", "TUTOR"].includes(locals.user.role)) throw error(403, "Accès refusé");
 
-    const idString = url.searchParams.get("id");
-    const tutorId = Number(idString);
-    if (!idString || Number.isNaN(tutorId)) throw error(400, "Identifiant du professeur manquant ou invalide.");
+    const isTutor = locals.user.role === "TUTOR";
+    const idString = url.searchParams.get(isTutor ? "studentId" : "tutorId");
+    const otherId = Number(idString);
+    if (!idString || Number.isNaN(otherId)) throw error(400, isTutor ? "Identifiant de l'élève manquant ou invalide." : "Identifiant du professeur manquant ou invalide.");
 
-    const [getAllAttachments, getTutorInfos] = await Promise.all([
+    const myProfileId = locals.user.profileId!;
+
+    const [getAllAttachments, contact] = await Promise.all([
         prisma.lesson.findMany({
-            where: { tutorId, studentId: locals.user.profileId! },
+            where: isTutor ? { tutorId: myProfileId, studentId: otherId } : { tutorId: otherId, studentId: myProfileId },
             select: {
                 course: { select: { subject: true, duration: true } },
                 attachments: {
@@ -37,31 +40,26 @@ export const load: PageServerLoad = async ({ locals, url }) => {
             },
             orderBy: { startDate: "desc" }
         }),
-        prisma.user.findFirst({
-            where: { tutor: { id: tutorId } },
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true
-            }
-        })
+        isTutor
+            ? prisma.studentProfile
+                .findUnique({ where: { id: otherId }, select: { user: { select: { id: true, firstName: true, lastName: true } } } })
+                .then((profile) => profile?.user ?? null)
+            : prisma.user.findFirst({
+                where: { tutor: { id: otherId } },
+                select: { id: true, firstName: true, lastName: true }
+            })
     ]);
 
-    if (!getAllAttachments) return {
-        attachments: [],
-        userId: locals.user.id,
-        tutor: getTutorInfos,
-        totalAttachments: 0
-    };
+    if (getAllAttachments.length === 0 || !contact) throw error(404, "Aucun cours avec cette personne");
 
-    const attachments = groupBySubject(getAllAttachments)
-    let totalAttachments = 0
-    attachments.forEach(attachment => totalAttachments += attachment.attachmentCount);
+    const attachments = groupBySubject(getAllAttachments);
+    const totalAttachments = attachments.reduce((total, subject) => total + subject.attachmentCount, 0);
 
     return {
         attachments,
         userId: locals.user.id,
-        tutor: getTutorInfos,
+        isTutor,
+        contact,
         totalAttachments
     };
 };

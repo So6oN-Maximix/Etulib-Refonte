@@ -120,7 +120,7 @@
                         <h3>{student.firstName} {student.lastName.toUpperCase()}</h3>
                         <p>{student.subjects.join(", ")} - {student.lessonCount} lesson{student.lessonCount > 1 ? "s" : ""}</p>
                     </div>
-                    <a href="/documents" class="btn-line">Documents</a>
+                    <a href="/documents?studentId={student.studentId}" class="btn-line">Documents</a>
                 </li>
                 {/each}
             </ul>

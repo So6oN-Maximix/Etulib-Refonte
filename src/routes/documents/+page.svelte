@@ -14,9 +14,9 @@
         <div class="page-head-inner profile-head">
             <span class="avatar big">CM</span>
             <div>
-                <p class="crumb"><a href="/student_profile#favoris">Mes professeurs</a> / {data.tutor!.firstName} {data.tutor!.lastName.toUpperCase()}</p>
+                <p class="crumb"><a href="/student_profile#favoris">Mes professeurs</a> / {data.contact.firstName} {data.contact.lastName.toUpperCase()}</p>
                 <h1>Documents</h1>
-                <p>Échangés avec {data.tutor!.firstName} {data.tutor!.lastName.toUpperCase()} · {data.totalAttachments} document{data.totalAttachments > 1 ? "s" : ""}</p>
+                <p>Échangés avec {data.contact.firstName} {data.contact.lastName.toUpperCase()} · {data.totalAttachments} document{data.totalAttachments > 1 ? "s" : ""}</p>
             </div>
             <a href="/student_profile" class="btn-line">Retour à mon espace</a>
         </div>
