@@ -1,10 +1,21 @@
 <script lang="ts">
-    import type { PageProps } from './$types';
+    import type { PageProps } from "./$types";
+    import { enhance } from "$app/forms";
     import { scrollSpy } from "#lib/actions/ScrollSpy";
+    import { showToast } from "#lib/toast.svelte.ts";
     import { FORMAT_LEVEL, FORMAT_MODE } from "#lib/constants";
     import { formatDuration } from "#lib/utils";
+    import Autocomplete from "#lib/components/Autocomplete.svelte";
+    import { searchCities } from "#lib/autocomplete";
 
     let { data }: PageProps = $props();
+    
+    // svelte-ignore state_referenced_locally
+    let cityName = $state(data.student.cityName ?? "");
+    // svelte-ignore state_referenced_locally
+    let cityCode = $state(data.student.city ?? "");
+    // svelte-ignore state_referenced_locally
+    let cityPicked = $state(data.student.cityName ?? "");
 </script>
 
 <section class="page-head seyes">
@@ -73,12 +84,27 @@
 
         <section id="infos">
             <h2>Mes informations</h2>
-            <form class="form" id="student-info">
+            <form method="POST" action={"?/saveInfos"} class="form" use:enhance={() => {
+                return async ({ result, update }) => {
+                    if (result.type === "success") showToast("Informations enregistrées");
+                    else if (result.type === "failure") {
+                        const data = result.data as { error?: string } | undefined;
+                        const errorMessage = data?.error || "Erreur server";
+                        showToast(errorMessage, "error");
+                    }
+                    update({ reset: false });
+                };
+            }}>
                 <label>Prénom<input type="text" placeholder="Prénom" name="firstName" value={data.user.firstName}></label>
                 <label>Nom<input type="text" placeholder="Nom" name="lastName" value={data.user.lastName}></label>
                 <label>Adresse e-mail<input type="email" placeholder="votre.mail@exemple.fr" name="email" value={data.user.email}></label>
                 <label>Téléphone<input type="tel" placeholder="06 12 34 56 78" name="phone" value={data.student.phone}></label>
-                <label>Ville<input type="text" placeholder="Votre ville" name="city" value={data.student.city}></label>
+                <label style="position: relative;">Ville
+                    <Autocomplete bind:value={cityName} search={searchCities} id="tutor-city" name="cityName" placeholder="Votre ville"
+                        onselect={(option) => { cityCode = option.key; cityPicked = option.label; }} />
+                </label>
+                <input type="hidden" name="city" value={cityName === cityPicked ? cityCode : ""}>
+                <input type="hidden" name="cityName" value={cityName === cityPicked ? cityName : ""}>
                 <label>
                     Niveau de l'élève
                     <select name="level" value={data.student.level || "NULL"}>

@@ -65,6 +65,7 @@ model StudentProfile {
 	bio         String?
 	phone		String?
 	city		String?
+    cityName    String?
 	birthDate   DateTime
 	address		Address?       @relation(fields: [addressId], references: [id])
 	addressId	Int?
