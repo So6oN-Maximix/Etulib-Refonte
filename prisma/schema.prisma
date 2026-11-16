@@ -36,6 +36,7 @@ model TutorProfile {
 	bio         String?
 	phone       String?
 	city		String?
+    cityName    String?
 	dispos		Availibility[]
 	experiences Experience[]
 	subjects    Course[]

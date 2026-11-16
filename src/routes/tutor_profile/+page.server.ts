@@ -13,10 +13,10 @@ type Mode = (typeof MODES)[number];
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.user || locals.user.role !== "TUTOR") throw error(403, "Accès refusé");
 
-    const [tutorProfile, tutorExp, tutorCourse, getAvailibilities, getLessons, getAllLessons] = await Promise.all([
+    const [tutorProfile, tutorExp, tutorCourse, getAvailibilities, getAllLessons] = await Promise.all([
         prisma.tutorProfile.findUnique({
             where: { userId: locals.user.id },
-            select: { id: true, phone: true, city: true, bio: true }
+            select: { id: true, phone: true, city: true, cityName: true, bio: true }
         }),
         prisma.experience.findMany({
             where: { tutorId: locals.user.profileId! },
@@ -33,12 +33,10 @@ export const load: PageServerLoad = async ({ locals }) => {
             orderBy: [{ day: "asc" }, { startMin: "asc" }]
         }),
         prisma.lesson.findMany({
-            where: {
-                tutorId: locals.user.profileId!,
-                startDate: { gte: new Date() }
-            },
+            where: { tutorId: locals.user.profileId! },
             select: {
                 id: true,
+                studentId: true,
                 startDate: true,
                 student: {
                     select: {
@@ -60,19 +58,11 @@ export const load: PageServerLoad = async ({ locals }) => {
                 }
             },
             orderBy: { startDate: "asc" }
-        }),
-        prisma.lesson.findMany({
-            where: { tutorId: locals.user.profileId! },
-            select: {
-                studentId: true,
-                student: { select: { user: { select: { firstName: true, lastName: true } } } },
-                course: { select: { subject: true } }
-            }
         })
     ]);
 
     const createdDate = new Date(locals.user.createdAt);
-    const formattedLessons = getLessons.map((lesson) => {
+    const allFormattedLessons = getAllLessons.map((lesson) => {
         const startDate = new Date(lesson.startDate);
         const endDate = new Date(startDate.getTime() + lesson.course.duration * 60_000);
         const dateParts = startDate
@@ -86,15 +76,18 @@ export const load: PageServerLoad = async ({ locals }) => {
             dateParts
         };
     });
+    const upcomingLessons = allFormattedLessons.filter(lesson => lesson.startDate >= new Date());
 
     if (!tutorProfile) return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
-        tutor: { id: 0, phone: "", city: "", bio: "" },
+        tutor: { id: 0, phone: "", city: "", cityName: "", bio: "" },
         exp: [],
         courses: [],
         availibilities: [],
         lessons: [],
-        students: []
+        calendarLessons: [],
+        students: [],
+        subjects: []
     };
 
     return {
@@ -109,8 +102,10 @@ export const load: PageServerLoad = async ({ locals }) => {
                 end: minutesToTime(availibility.endMin)
             };
         }),
-        lessons: formattedLessons,
-        students: summarizeStudent(getAllLessons)
+        lessons: upcomingLessons,
+        calendarLessons: allFormattedLessons,
+        students: summarizeStudent(getAllLessons),
+        subjects: [...new Set(tutorCourse.map(course => course.subject))]
     };
 };
 

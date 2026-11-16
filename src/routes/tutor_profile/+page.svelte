@@ -9,10 +9,13 @@
     import { showToast } from "#lib/toast.svelte";
 
     import Planner from "#lib/components/Planner.svelte";
-    import { type Range, minutesToTime } from "#lib/planner";
+    import type { Range } from "#lib/planner";
 
     import Autocomplete from "#lib/components/Autocomplete.svelte";
-    import { searchSubjects } from "#lib/autocomplete";
+    import { searchSubjects, searchCities } from "#lib/autocomplete";
+
+    import { buildWeek } from "#lib/calendar";
+    import { mondayOf, addDays, formatDay } from "#lib/week";
 
     let { data, form }: PageProps = $props();
     // svelte-ignore state_referenced_locally
@@ -22,6 +25,13 @@
     let editingCourse = $state<any>(null);
     let showExpForm = $state(false);
     let editingExp = $state<any>(null);
+
+    // svelte-ignore state_referenced_locally
+    let cityName = $state(data.tutor.cityName ?? "");
+    // svelte-ignore state_referenced_locally
+    let cityCode = $state(data.tutor.city ?? "");
+    // svelte-ignore state_referenced_locally
+    let cityPicked = $state(data.tutor.cityName ?? "");
 
     function toggleCourseForm(event: MouseEvent) {
         event.preventDefault();
@@ -43,6 +53,20 @@
         editingExp = exp;
         showExpForm = true;
     }
+
+    let calendarModal: HTMLDialogElement | undefined = $state();
+    let calWeekStart = $state(mondayOf(new Date()));
+    const ROW_PX = 48;
+
+    const weekData = $derived(buildWeek(data.calendarLessons, calWeekStart, ROW_PX));
+    const calRangeLabel = $derived(`${formatDay(calWeekStart)} – ${formatDay(addDays(calWeekStart, 6))}`);
+
+    function openCalendar() {
+        calWeekStart = mondayOf(new Date());
+        calendarModal?.showModal();
+    }
+
+    const shiftCalWeek = (n: number) => (calWeekStart = addDays(calWeekStart, n * 7));
 </script>
 
 <section class="page-head seyes">
@@ -51,7 +75,7 @@
             <span class="avatar big">{(data.user.firstName[0] + data.user.lastName[0]).toUpperCase()}</span>
             <div>
                 <h1>{data.user.firstName} {data.user.lastName.toUpperCase()}</h1>
-                <p id="tutor-role">Professeur de ...</p>
+                <p id="tutor-role">{data.subjects.length > 0 ? `Professeur de ${data.subjects.join(", ")}` : "Professeur"}</p>
                 <p id="member-since">Membre depuis {data.user.creationDate}</p>
                 <div class="tags"><span class="status">Profil vérifié</span></div>
             </div>
@@ -86,7 +110,7 @@
         <section id="cours">
             <div class="section-head">
                 <h2>Prochains cours</h2>
-                <button type="button" class="icon-btn" id="open-calendar" aria-label="Voir le calendrier de la semaine" title="Calendrier de la semaine">
+                <button type="button" class="icon-btn" id="open-calendar" aria-label="Voir le calendrier de la semaine" title="Calendrier de la semaine" onclick={openCalendar}>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
                 </button>
             </div>
@@ -308,7 +332,11 @@
                 <label>Nom<input type="text" placeholder="Nom" name="lastName"value={data.user.lastName}></label>
                 <label class="full">Adresse e-mail<input type="email" placeholder="votre.mail@exemple.fr" name="email" value={data.user.email}></label>
                 <label>Téléphone<input type="tel" placeholder="06 12 34 56 78" name="phone"value={data.tutor.phone}></label>
-                <label>Ville<input type="text" placeholder="Votre ville" name="city" value={data.tutor.city}></label>
+                <label style="position: relative;">Ville
+                    <Autocomplete bind:value={cityName} search={searchCities} id="tutor-city" name="cityName" placeholder="Votre ville"
+                        onselect={(option) => { cityCode = option.key; cityPicked = option.label; }} />
+                </label>
+                <input type="hidden" name="city" value={cityName === cityPicked ? cityCode : ""}>
                 <button type="submit" class="btn-search">Enregistrer</button>
             </form>
         </section>
@@ -352,14 +380,55 @@
     </form>
 </dialog>
 
-<dialog class="modal modal-calendar" id="calendar-modal" aria-labelledby="calendar-title">
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+<dialog
+    class="modal modal-calendar"
+    id="calendar-modal"
+    bind:this={calendarModal}
+    aria-labelledby="calendar-title"
+    onclick={(e) => { if (e.target === calendarModal) calendarModal?.close(); }}
+>
     <div class="cal-head">
         <h2 id="calendar-title">Cours de la semaine</h2>
-        <span class="cal-range" id="cal-range"></span>
+        <div style="display: flex; align-items: center; gap: .4rem;">
+            <button type="button" class="btn-line" style="padding: .3rem .6rem;" aria-label="Semaine précédente" onclick={() => shiftCalWeek(-1)}>‹</button>
+            <span class="cal-range" id="cal-range">{calRangeLabel}</span>
+            <button type="button" class="btn-line" style="padding: .3rem .6rem;" aria-label="Semaine suivante" onclick={() => shiftCalWeek(1)}>›</button>
+        </div>
         <form method="dialog"><button type="submit" class="btn-line">Fermer</button></form>
     </div>
-    <div class="week" id="week"></div>
-    <p class="empty" id="no-week-lessons" hidden>Aucun cours cette semaine.</p>
+
+    <div class="week" id="week" style="--row: {ROW_PX}px;">
+        <div class="week-hours">
+            <div style="height: 44px; border-bottom: 1.5px solid var(--ink); background: var(--tint);"></div>
+            {#each weekData.hours as hour}
+                <span>{String(hour).padStart(2, "0")}h</span>
+            {/each}
+        </div>
+
+        {#each weekData.days as day (day.iso)}
+            <div class="week-day" class:today={day.today}>
+                <div class="week-day-head">{day.label}</div>
+                <div class="week-body" style="height: {weekData.bodyHeight}px;">
+                    {#each day.lessons as lesson (lesson.id)}
+                        <a
+                            href="/lesson_details?id={lesson.id}"
+                            class="week-lesson"
+                            style="top: {lesson.top}px; height: {lesson.height}px;"
+                            title="{lesson.course.title} avec {lesson.student.user.firstName} {lesson.student.user.lastName}"
+                        >
+                            <b>{lesson.course.subject}</b>
+                            <small>{lesson.student.user.firstName} {lesson.student.user.lastName[0]}.</small>
+                        </a>
+                    {/each}
+                </div>
+            </div>
+        {/each}
+    </div>
+
+    {#if weekData.count === 0}
+        <p class="empty" id="no-week-lessons" style="margin-top: 1rem;">Aucun cours cette semaine.</p>
+    {/if}
 </dialog>
 
 <style>

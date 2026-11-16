@@ -10,6 +10,7 @@ export type SeedTutor = {
     lastName: string;
     phone: string;
     city: string;
+    cityName: string;
     bio: string;
     createdAt: Date;
     courses: { title: string; subject: string; bio: string; level: Level; hourlyRate: number; duration: number; mode: Mode }[];
@@ -140,6 +141,7 @@ export function generateTutors(count: number, seed = 42, now: Date = new Date())
             lastName,
             phone: `+33${pick([6, 7])}${String(int(0, 99999999)).padStart(8, "0")}`,
             city: pick(CITIES).code,
+            cityName: pick(CITIES).name,
             bio: `${years} an${years > 1 ? "s" : ""} d'expérience. Spécialité ${courses[0].subject.toLowerCase()}, pédagogie patiente et progressive, avec un suivi régulier des progrès.`,
             createdAt: new Date(now.getTime() - int(30, 700) * 24 * 60 * 60 * 1000),
             courses,
