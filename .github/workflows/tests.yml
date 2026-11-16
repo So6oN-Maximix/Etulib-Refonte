@@ -25,7 +25,7 @@ jobs:
 
       - name: Générer les types Prisma et SvelteKit
         run: |
-          npx prisma generate
+          npx prisma generate --generator client
           npx svelte-kit sync
 
       - name: Lancer Vitest
