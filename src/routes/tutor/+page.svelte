@@ -209,7 +209,7 @@
             Thème de la séance (facultatif)
             <!-- svelte-ignore a11y_autofocus -->
             <input type="text" name="theme" bind:value={theme} maxlength="100" autocomplete="off" autofocus placeholder="Ex : Probabilités conditionnelles">
-            <span class="theme-hint"><span>Indiquez le chapitre ou la notion à travailler, votre professeur pourra préparer le cours.</span><span>{theme.length}/100</span></span>
+            <span class="theme-hint"><span>Indiquez le chapitre ou la notion à travailler pour que votre professeur puisse préparer le cours.</span><span>{theme.length}/100</span></span>
         </label>
 
         {#if form?.action === "reserve" && form?.error}

@@ -13,7 +13,9 @@ export const load: PageServerLoad = async ({ locals }) => {
             select: { phone: true, city: true }
         }),
         prisma.studentProfile.findMany({
-            where: { parent: { userId: locals.user.id } },
+            where: {
+                parent: { userId: locals.user.id }
+            },
             select: {
                 id: true,
                 level: true,
@@ -22,6 +24,31 @@ export const load: PageServerLoad = async ({ locals }) => {
                         id: true,
                         firstName: true,
                         lastName: true
+                    }
+                },
+                lessons: {
+                    where: { startDate: { gte: new Date() } },
+                    select: {
+                        id: true,
+                        startDate: true,
+                        tutor: {
+                            select: {
+                                user: {
+                                    select: {
+                                        firstName: true,
+                                        lastName: true
+                                    }
+                                }
+                            }
+                        },
+                        course: {
+                            select: {
+                                title: true,
+                                subject: true,
+                                duration: true,
+                                mode: true
+                            }
+                        }
                     }
                 }
             }
@@ -33,13 +60,24 @@ export const load: PageServerLoad = async ({ locals }) => {
     if (!parentProfile) return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         parent: { phone: "", city: "" },
-        childrens: []
+        childrens: [],
+        lessons: []
     };
+
+    const childrens = getChildrens.map(({lessons, ...child}) => child);
+    const lessons = getChildrens
+        .flatMap(({ lessons, ...child }) => lessons.map(lesson => {
+            const endDate = new Date(lesson.startDate);
+            endDate.setMinutes(endDate.getMinutes() + lesson.course.duration);
+            return ({ ...lesson, child, endDate, splitDate: lesson.startDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).split(" ") })
+        }))
+        .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
     return {
         user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         parent: { ...parentProfile, phone: formatPhoneUX(parentProfile.phone || "") },
-        childrens: getChildrens
+        childrens,
+        lessons
     };
 };
 

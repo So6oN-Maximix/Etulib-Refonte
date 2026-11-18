@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { PageProps } from './$types';
     import { enhance } from "$app/forms";
-    import { FORMAT_LEVEL } from "#lib/constants";
+    import { FORMAT_LEVEL, FORMAT_MODE } from "#lib/constants";
     import { scrollSpy } from "#lib/actions/ScrollSpy";
+    import { formatDuration } from '#lib/utils.ts';
     let { data, form }: PageProps = $props();
 
     let showForm = $state(false);
@@ -29,7 +30,6 @@
     <aside class="side-nav" aria-label="Mon espace" use:scrollSpy>
         <a href="#cours" aria-current="page">Prochains cours</a>
         <a href="#enfants">Mes enfants</a>
-        <a href="#comptes-rendus">Comptes rendus</a>
         <a href="#professeurs">Mes professeurs</a>
         <a href="#paiements">Paiements</a>
         <a href="#infos">Mes informations</a>
@@ -38,8 +38,23 @@
     <div class="account">
         <section id="cours">
             <h2>Prochains cours</h2>
-            <ul class="lessons"></ul>
+            {#if data.lessons.length > 0}
+            <ul class="lessons">
+                {#each data.lessons as lesson}
+                <li>
+                    <div class="date"><b>{lesson.splitDate[1]}</b>{lesson.splitDate[0]} {lesson.splitDate[2]}</div>
+                    <div class="who">
+                        <h3>{lesson.child.user.firstName}, {lesson.course.subject.toLowerCase()} avec {lesson.tutor.user.firstName} {lesson.tutor.user.lastName.toUpperCase()}</h3>
+                        <p>{formatDuration(lesson.startDate.getHours() * 60 + lesson.startDate.getMinutes())} à {formatDuration(lesson.endDate.getHours() * 60 + lesson.endDate.getMinutes())}, {FORMAT_MODE[lesson.course.mode]}</p>
+                    </div>
+                    <a href="/lesson_details?id={lesson.id}" class="btn-line">Details</a>
+                    <a href="/" class="link-quiet">Annuler</a>
+                </li>
+                {/each}
+            </ul>
+            {:else}
             <p class="empty">Aucune réservation pour le moment</p>
+            {/if}
         </section>
 
         <section id="enfants">
@@ -53,7 +68,7 @@
                         <p>{FORMAT_LEVEL[child.level!].charAt(0).toUpperCase() + FORMAT_LEVEL[child.level!].slice(1)}</p>
                     </div>
                     <div class="course-actions">
-                        <a href="/" class="btn-line">Réserver un cours</a>
+                        <a href="/research" class="btn-line">Réserver un cours</a>
                         <a href="/student_profile?id={child.id}" class="link-quiet">Profil</a>
                     </div>
                 </li>
@@ -104,19 +119,6 @@
                     <a href="/" class="link-quiet" onclick={toggleForm}>Annuler</a>
                 </div>
             </form>
-        </section>
-
-        <section id="comptes-rendus">
-            <h2>Derniers comptes rendus</h2>
-            <figure class="quote small">
-                <blockquote>Léa a bien progressé sur les fonctions affines. On reprend les équations du second degré vendredi, avec deux exercices à préparer.</blockquote>
-                <span class="note" aria-hidden="true">Bon travail !</span>
-                <figcaption>Camille M., à propos de Léa, séance du 8 octobre</figcaption>
-            </figure>
-            <figure class="quote small">
-                <blockquote>Tom a lu un chapitre entier à voix haute sans hésiter. Nous travaillerons l'orthographe des accords la prochaine fois.</blockquote>
-                <figcaption>Sophie L., à propos de Tom, séance du 5 octobre</figcaption>
-            </figure>
         </section>
 
         <section id="professeurs">
