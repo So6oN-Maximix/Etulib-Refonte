@@ -327,16 +327,27 @@
 
         <section id="mes-infos">
             <h2>Mes informations</h2>
-            <form class="form" id="tutor-info">
+            <form method="POST" action="?/saveInfos" class="form" use:enhance={() => {
+                return async ({ result, update }) => {
+                    if (result.type === "success") showToast("Informations enregistrées");
+                    else if (result.type === "failure") {
+                        const data = result.data as { error?: string } | undefined;
+                        const errorMessage = data?.error || "Erreur server";
+                        showToast(errorMessage, "error");
+                    }
+                    update({ reset: false });
+                };
+            }}>
                 <label>Prénom<input type="text" placeholder="Prénom" name="firstName" value={data.user.firstName}></label>
                 <label>Nom<input type="text" placeholder="Nom" name="lastName"value={data.user.lastName}></label>
                 <label class="full">Adresse e-mail<input type="email" placeholder="votre.mail@exemple.fr" name="email" value={data.user.email}></label>
                 <label>Téléphone<input type="tel" placeholder="06 12 34 56 78" name="phone"value={data.tutor.phone}></label>
                 <label style="position: relative;">Ville
                     <Autocomplete bind:value={cityName} search={searchCities} id="tutor-city" name="cityName" placeholder="Votre ville"
-                        onselect={(option) => { cityCode = option.key; cityPicked = option.label; }} />
+                        onselect={option => { cityCode = option.key; cityPicked = option.label; }} />
                 </label>
                 <input type="hidden" name="city" value={cityName === cityPicked ? cityCode : ""}>
+                <input type="hidden" name="cityName" value={cityName === cityPicked ? cityPicked : ""}>
                 <button type="submit" class="btn-search">Enregistrer</button>
             </form>
         </section>

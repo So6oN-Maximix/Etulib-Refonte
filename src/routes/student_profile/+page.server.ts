@@ -1,7 +1,7 @@
 import { error, fail } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
-import { formatPhoneUX } from "#lib/utils";
+import { formatPhoneUX, formatPhoneGlobal } from "#lib/utils";
 import { summarizeTutors } from "#lib/studentTutors.ts";
 
 const LEVELS = ["PRIMAIRE", "COLLEGE", "LYCEE", "SUP"] as const;
@@ -99,13 +99,11 @@ export const actions: Actions = {
         const cityName = String(formData.get("cityName") ?? "").trim();
         const level = String(formData.get("level"));
 
-        let cleanPhone = phone.replace(/[\s.-]/g, "");
-        if (/^0[1-9]\d{8}$/.test(phone)) cleanPhone = "+33" + phone.slice(1);
-        const isValidPhone = cleanPhone === "" || /^(?:(?:\+|00)33|0)\s*[1-9](?:\s*\d{2}){4}$/.test(cleanPhone);
+        const cleanPhone = formatPhoneGlobal(phone);
 
         if (!firstName || !lastName || !email) return fail(400, { action: "infos", error: "Champs invalides" });
         if (!LEVELS.includes(level as Level)) return fail(400, { action: "infos", error: "Niveau invalide" });
-        if (!isValidPhone) return fail(400, { action: "infos", error: "Téléphone invalide" });
+        if (!cleanPhone) return fail(400, { action: "infos", error: "Téléphone invalide" });
 		if (!/^\S+@\S+\.\S+$/.test(email)) return fail(400, { error: "Adresse e-mail invalide" });
 
         try {

@@ -1,9 +1,10 @@
 import { error, fail } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
-import { formatPhoneUX } from "#lib/utils";
+import { formatPhoneUX, formatPhoneGlobal } from "#lib/utils";
 import { minutesToTime, parseRanges, timeToMinutes } from "#lib/planner";
 import { summarizeStudent } from "#lib/studentTutors.ts";
+import { searchCities } from "#lib/autocomplete.ts";
 
 const LEVELS = ["PRIMAIRE", "COLLEGE", "LYCEE", "SUP"] as const;
 type Level = (typeof LEVELS)[number];
@@ -266,7 +267,7 @@ export const actions: Actions = {
         await prisma.$transaction([
             prisma.availibility.deleteMany({ where: { tutorId } }),
             prisma.availibility.createMany({
-                data: ranges.map((r) => ({
+                data: ranges.map(r => ({
                     tutorId,
                     day: r.day,
                     startMin: timeToMinutes(r.start),
@@ -276,5 +277,45 @@ export const actions: Actions = {
         ]);
     
         return { success: true };
+    },
+    saveInfos: async ({ request, locals }) => {
+        if (!locals.user || locals.user.role !== "TUTOR") return fail(403, { action: "saveInfos", error: "Non autorisé"});
+
+        const formData = await request.formData();
+
+        const firstName = String(formData.get("firstName") ?? "").trim();
+        const lastName = String(formData.get("lastName") ?? "").trim();
+        const email = String(formData.get("email") ?? "").trim().toLowerCase();
+        const phone = String(formData.get("phone") ?? "").trim();
+        const city = String(formData.get("city") ?? "").trim();
+        const cityName = String(formData.get("cityName") ?? "").trim();
+
+        const cleanPhone = formatPhoneGlobal(phone);
+
+        if (!firstName || !lastName || !email) return fail(400, { action: "saveInfos", error: "Champs invalides" });
+        if (!cleanPhone) return fail(400, { action: "saveInfos", error: "Téléphone invalide" });
+        if (!/^\S+@\S+\.\S+$/.test(email)) return fail(400, { action: "saveInfos", error: "Adresse e-mail invalide" });
+
+        let finalCity = city;
+        if (!finalCity && cityName) {
+            const controller = new AbortController();
+            const results = await searchCities(cityName, controller.signal);
+            finalCity = results?.[0]?.key ?? "";
+        }
+
+        try {
+            await Promise.all([
+                prisma.user.update({
+                    where: { id: locals.user.id },
+                    data: { email, firstName, lastName }
+                }),
+                prisma.tutorProfile.update({
+                    where: { userId: locals.user.id },
+                    data: { phone: cleanPhone, city: finalCity, cityName }
+                })
+            ]);
+            
+            return { action: "saveInfos", success: true };
+        } catch (error) { throw error }
     }
 };

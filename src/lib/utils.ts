@@ -1,7 +1,15 @@
-export function formatPhoneUX(rawPhone: String) {
+export function formatPhoneUX(rawPhone: string) {
     const compact = rawPhone.replace("+33", "0");
     const numbers = compact.match(/.{1,2}/g) || [];
     return numbers.join(" ");
+}
+
+export function formatPhoneGlobal(phone: string) {
+    if (!phone) return null;
+    let cleanPhone = phone.replace(/[\s.-]/g, "");
+    if (/^0[1-9]\d{8}$/.test(phone)) cleanPhone = "+33" + phone.slice(1);
+    const isValidPhone = cleanPhone === "" || /^(?:(?:\+|00)33|0)\s*[1-9](?:\s*\d{2}){4}$/.test(cleanPhone);
+    return isValidPhone ? cleanPhone : null;
 }
 
 export function formatDuration(minutes: number) {
