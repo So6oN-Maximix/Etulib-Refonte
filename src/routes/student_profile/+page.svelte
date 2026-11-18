@@ -7,6 +7,7 @@
     import { formatDuration } from "#lib/utils";
     import Autocomplete from "#lib/components/Autocomplete.svelte";
     import { searchCities } from "#lib/autocomplete";
+    import { page } from "$app/state";
 
     let { data }: PageProps = $props();
     
@@ -21,9 +22,9 @@
 <section class="page-head seyes">
     <div class="container">
         <div class="page-head-inner profile-head">
-            <span class="avatar big">{(data.user.firstName[0] + data.user.lastName[0]).toUpperCase()}</span>
+            <span class="avatar big">{(data.user.firstName![0] + data.user.lastName![0]).toUpperCase()}</span>
             <div>
-                <h1>{data.user.firstName} {data.user.lastName.toUpperCase()}</h1>
+                <h1>{data.user.firstName} {data.user.lastName!.toUpperCase()}</h1>
                 <p>Eleve{(data.student.level) ? " " + FORMAT_LEVEL[data.student.level as keyof typeof FORMAT_LEVEL] : ""}. Membre depuis {data.user.creationDate}.</p>
             </div>
             <a href="#infos" class="btn-line">Modifier mes informations</a>
@@ -84,7 +85,7 @@
 
         <section id="infos">
             <h2>Mes informations</h2>
-            <form method="POST" action={"?/saveInfos"} class="form" use:enhance={() => {
+            <form method="POST" action="?/saveInfos&{page.url.searchParams}" class="form" use:enhance={() => {
                 return async ({ result, update }) => {
                     if (result.type === "success") showToast("Informations enregistrées");
                     else if (result.type === "failure") {
@@ -95,6 +96,7 @@
                     update({ reset: false });
                 };
             }}>
+                <input type="hidden" name="id" value={page.url.searchParams.get("id")}>
                 <label>Prénom<input type="text" placeholder="Prénom" name="firstName" value={data.user.firstName}></label>
                 <label>Nom<input type="text" placeholder="Nom" name="lastName" value={data.user.lastName}></label>
                 <label>Adresse e-mail<input type="email" placeholder="votre.mail@exemple.fr" name="email" value={data.user.email}></label>

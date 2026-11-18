@@ -7,17 +7,42 @@ import { summarizeTutors } from "#lib/studentTutors.ts";
 const LEVELS = ["PRIMAIRE", "COLLEGE", "LYCEE", "SUP"] as const;
 type Level = (typeof LEVELS)[number];
 
-export const load: PageServerLoad = async ({ locals }) => {
-    if (!locals.user || locals.user.role !== "STUDENT") throw error(403, "Accès refusé");
+async function resolveStudent(locals: App.Locals, rawId: string | null) {
+    const user = locals.user;
+    if (!user) throw error(401, "Non connecté");
+
+    if (user.role === "STUDENT") return { user, profileId: user.profileId! };
+
+    if (user.role === "PARENT") {
+        const id = Number(rawId);
+        if (!Number.isInteger(id)) throw error(400, "Identifiant invalide");
+
+        const child = await prisma.studentProfile.findFirst({
+            where: { id, parentId: user.profileId! },
+            select: {
+                id: true,
+                user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true } }
+            }
+        });
+        if (!child) throw error(403, "Accès refusé");
+
+        return { user: child.user, profileId: child.id };
+    }
+
+    throw error(403, "Accès refusé");
+}
+
+export const load: PageServerLoad = async ({ locals, url }) => {
+    const { user, profileId } = await resolveStudent(locals, url.searchParams.get("id"));
 
     const [studentProfile, getLessons, getAllLessons] = await Promise.all([
         prisma.studentProfile.findUnique({
-            where: { userId: locals.user.id },
+            where: { userId: user.id },
             select: { phone: true, city: true, cityName: true, level: true }
         }),
         prisma.lesson.findMany({
             where: {
-                studentId: locals.user.profileId!,
+                studentId: profileId,
                 startDate: { gte: new Date() }
             },
             select: {
@@ -45,7 +70,7 @@ export const load: PageServerLoad = async ({ locals }) => {
             orderBy: { startDate: "asc" }
         }),
         prisma.lesson.findMany({
-            where: { studentId: locals.user.profileId! },
+            where: { studentId: profileId },
             select: {
                 tutorId: true,
                 tutor: { select: { user: { select: { firstName: true, lastName: true } } } },
@@ -54,7 +79,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         })
     ]);
 
-    const createdDate = new Date(locals.user.createdAt);
+    const createdDate = new Date(user.createdAt);
     const formattedLessons = getLessons.map((lesson) => {
         const startDate = new Date(lesson.startDate);
         const endDate = new Date(startDate.getTime() + lesson.course.duration * 60_000);
@@ -71,14 +96,14 @@ export const load: PageServerLoad = async ({ locals }) => {
     });
 
     if (!studentProfile) return {
-        user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
+        user: { ...user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         student: { phone: "", city: "", cityName: "", level: "" },
         lessons: [],
         tutors: []
     }
 
     return {
-        user: { ...locals.user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
+        user: { ...user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
         student: { ...studentProfile, phone: formatPhoneUX(studentProfile.phone || "") },
         lessons: formattedLessons,
         tutors: summarizeTutors(getAllLessons)
@@ -87,9 +112,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
     saveInfos: async ({ request, locals }) => {
-        if (!locals.user || locals.user.role !== "STUDENT") return fail(403, { action: "exp", error: "Non autorisé" });
 
         const formData = await request.formData();
+        
+        const { user } = await resolveStudent(locals, String(formData.get("id") ?? ""));
 
         const firstName = String(formData.get("firstName") ?? "").trim();
         const lastName = String(formData.get("lastName") ?? "").trim();
@@ -109,11 +135,11 @@ export const actions: Actions = {
         try {
             await Promise.all([
                 prisma.user.update({
-                    where: { id: locals.user.id },
+                    where: { id: user.id },
                     data: { email, firstName, lastName }
                 }),
                 prisma.studentProfile.update({
-                    where: { userId: locals.user.id },
+                    where: { userId: user.id },
                     data: { phone: cleanPhone, city, cityName, level: level as Level }
                 })
             ]);

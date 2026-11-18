@@ -18,7 +18,7 @@
             <span class="avatar big">{(data.user.firstName[0] + data.user.lastName[0]).toUpperCase()}</span>
             <div>
                 <h1>{data.user.firstName} {data.user.lastName.toUpperCase()}</h1>
-                <p>Parent de Léa et Tom. Membre depuis {data.user.creationDate}.</p>
+                <p>Parent{data.childrens.length > 0 ? " de " + data.childrens.map(child => child.user.firstName).join(", ") : ""}. Membre depuis {data.user.creationDate}.</p>
             </div>
             <a href="/research" class="btn-line">Trouver un professeur</a>
         </div>
@@ -39,7 +39,7 @@
         <section id="cours">
             <h2>Prochains cours</h2>
             <ul class="lessons"></ul>
-            <p class="empty" hidden>Aucune réservation pour le moment</p>
+            <p class="empty">Aucune réservation pour le moment</p>
         </section>
 
         <section id="enfants">
@@ -49,12 +49,12 @@
                 {#each data.childrens as child}
                 <li>
                     <div class="who">
-                        <h3>{child.user.firstName} {child.user.firstName.toUpperCase()}</h3>
+                        <h3>{child.user.firstName} {child.user.lastName.toUpperCase()}</h3>
                         <p>{FORMAT_LEVEL[child.level!].charAt(0).toUpperCase() + FORMAT_LEVEL[child.level!].slice(1)}</p>
                     </div>
                     <div class="course-actions">
                         <a href="/" class="btn-line">Réserver un cours</a>
-                        <a href="/" class="link-quiet">Profil</a>
+                        <a href="/student_profile?id={child.id}" class="link-quiet">Profil</a>
                     </div>
                 </li>
                 {/each}
