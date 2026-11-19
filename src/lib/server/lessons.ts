@@ -1,7 +1,7 @@
-import { prisma } from "#lib/server/prisma";
+import { prisma } from "./prisma";
 
 export async function getLessonAccess(user: NonNullable<App.Locals["user"]>, lessonId: number) {
-    if (!Number.isInteger(lessonId)) return null;
+    if (!user?.id || !Number.isInteger(lessonId)) return null;
     return prisma.lesson.findFirst({
         where: {
             id: lessonId,
