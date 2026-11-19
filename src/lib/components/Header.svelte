@@ -18,7 +18,7 @@
 		</nav>
 		<div class="auth-buttons ready">
             {#if user}
-                <a href="/" class="nav-messages">Messages</a>
+                <a href="/messages" class="nav-messages">Messages</a>
                 <a href="/{user.role.toLowerCase()}_profile" class="btn-signup">Mon espace</a>
                 <a href="/logout" class="btn-logout" data-sveltekit-preload-data="false">Se déconnecter</a>
             {:else}

@@ -2,6 +2,8 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
 import { resolveStudent } from "#lib/server/student.ts";
+import { formatDuration } from "#lib/utils.ts";
+import { encryptMessage } from "#lib/server/crypto.ts";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
     const idString = url.searchParams.get("id");
@@ -105,7 +107,7 @@ export const actions: Actions = {
             if (taken) return fail(400, { action: "reserve", error: "Ce cours est déjà réservé à cette heure" });
 
             const [ , tutorInfos] = await Promise.all([
-                await prisma.lesson.create({
+                prisma.lesson.create({
                     data: {
                         studentId,
                         tutorId: course.tutorId,
@@ -114,11 +116,24 @@ export const actions: Actions = {
                         theme
                     }
                 }),
-                await prisma.user.findFirst({
+                prisma.user.findFirst({
                     where: { tutor: { id: course.tutorId } },
                     select: { firstName: true, lastName: true }
-                })
+                }),
             ]);
+
+            let getConversation = await prisma.conversation.findFirst({ where: { tutorId: course.tutorId, studentId }, select: { id: true } });
+            if (!getConversation) getConversation = await prisma.conversation.create({ data: { tutorId: course.tutorId, studentId }, select: { id: true } });
+
+            const formatStartDate = startDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+            const systemMessageText = `Cours de <b>${course.subject}</b> réservé pour le <b>${formatStartDate.charAt(0).toUpperCase() + formatStartDate.slice(1)} à ${formatDuration(startDate.getHours() * 60 + startDate.getMinutes())}</b>`;
+            await prisma.message.create({
+                data: {
+                    conversationId: getConversation.id,
+                    senderId: 0,
+                    body: encryptMessage(systemMessageText, getConversation.id)
+                }
+            });
             
             cookies.set("flash", JSON.stringify({ tutor: tutorInfos, subject: course.subject, startDate, duration: course.duration }), { path: "/reserve_success", maxAge: 10 });
             redirect(303, "/reserve_success");

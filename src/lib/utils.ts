@@ -75,3 +75,40 @@ export function getNextAvailableSlot(dispos: Dispo[], lessons: BookedLesson[], m
 
     return null;
 }
+
+function startOfDay(date: Date | string | number): number {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+}
+
+const MS_PER_DAY = 86_400_000;
+
+export function formatMsgDate(dateInput: Date) {
+    if (!dateInput) return "";
+
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return "";
+
+    const now = new Date();
+    
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfMsgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const diffInDays = Math.round((startOfDay(startOfToday) - startOfDay(startOfMsgDate)) / MS_PER_DAY);
+
+    if (diffInDays === 0) { return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); } 
+    
+    if (diffInDays > 0 && diffInDays < 7) {
+        let dayStr = date.toLocaleDateString("fr-FR", { weekday: "short" });
+        dayStr = dayStr.charAt(0).toUpperCase() + dayStr.slice(1);
+        return dayStr.endsWith(".") ? dayStr : `${dayStr}.`;
+    } 
+    
+    const sameYear = date.getFullYear() === now.getFullYear();
+    return date.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+        ...(sameYear ? {} : { year: "2-digit" })
+    });
+}
