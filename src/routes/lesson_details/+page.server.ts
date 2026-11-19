@@ -5,7 +5,7 @@ import { getLessonAccess } from "#lib/server/lessons.ts";
 import { MAX_FILE_SIZE, MAX_FILES_PER_UPLOAD, cleanFileName, detectType, removeStored, saveEncrypted } from "#lib/server/uploads";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-    if (!locals.user || !["STUDENT", "TUTOR"].includes(locals.user.role)) throw error(403, "Accès refusé");
+    if (!locals.user || !["STUDENT", "TUTOR", "PARENT"].includes(locals.user.role)) throw error(403, "Accès refusé");
 
     const idString = url.searchParams.get("id");
 

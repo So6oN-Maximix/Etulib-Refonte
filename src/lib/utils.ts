@@ -1,3 +1,5 @@
+export function sanitizeText(text: string) { return text.replace("é", "e").replace("è", "e").toLowerCase(); }
+
 export function formatPhoneUX(rawPhone: string) {
     const compact = rawPhone.replace("+33", "0");
     const numbers = compact.match(/.{1,2}/g) || [];

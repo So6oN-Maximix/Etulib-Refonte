@@ -3,6 +3,7 @@ import { prisma } from "#lib/server/prisma";
 import bcrypt from "bcrypt";
 import type { PageServerLoad, Actions } from "./$types";
 import { formatPhoneUX } from "#lib/utils";
+import { summarizeTutors } from "#lib/studentTutors.ts";
 
 export const load: PageServerLoad = async ({ locals }) => {
     if (!locals.user || locals.user.role !== "PARENT") throw error(403, "Accès refusé");
@@ -27,10 +28,11 @@ export const load: PageServerLoad = async ({ locals }) => {
                     }
                 },
                 lessons: {
-                    where: { startDate: { gte: new Date() } },
+                    orderBy: { startDate: "asc" },
                     select: {
                         id: true,
                         startDate: true,
+                        tutorId: true,
                         tutor: {
                             select: {
                                 user: {
@@ -64,13 +66,25 @@ export const load: PageServerLoad = async ({ locals }) => {
         lessons: []
     };
 
-    const childrens = getChildrens.map(({lessons, ...child}) => child);
+    const now = new Date();
+    const childrens = getChildrens.map(({ lessons, ...child }) => ({
+        ...child,
+        tutors: summarizeTutors(lessons)
+    }));
+
     const lessons = getChildrens
-        .flatMap(({ lessons, ...child }) => lessons.map(lesson => {
-            const endDate = new Date(lesson.startDate);
-            endDate.setMinutes(endDate.getMinutes() + lesson.course.duration);
-            return ({ ...lesson, child, endDate, splitDate: lesson.startDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).split(" ") })
-        }))
+        .flatMap(({ lessons, ...child }) => lessons
+            .filter((lesson) => lesson.startDate >= now)
+            .map((lesson) => {
+                const endDate = new Date(lesson.startDate);
+                endDate.setMinutes(endDate.getMinutes() + lesson.course.duration);
+                return {
+                    ...lesson,
+                    child,
+                    endDate,
+                    splitDate: lesson.startDate.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).split(" ")
+                };
+            }))
         .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 
     return {

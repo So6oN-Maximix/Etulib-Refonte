@@ -1,5 +1,6 @@
 import { prisma } from "#lib/server/prisma";
 import type { Handle } from "@sveltejs/kit/hooks";
+import { resolveStudent } from "#lib/server/student.ts";
 
 export const handle: Handle = async ({ event, resolve }) => {
     const userIdStr = event.cookies.get("user_id");
@@ -25,10 +26,8 @@ export const handle: Handle = async ({ event, resolve }) => {
                 else if (user.role === "STUDENT") profileId = user.student?.id;
                 else if (user.role === "TUTOR") profileId = user.tutor?.id;
 
-                event.locals.user = {
-                    ...user,
-                    profileId
-                };
+                const { passwordHash, ...safeUser } = user;
+                event.locals.user = { ...safeUser, profileId };
             }
         }
     }
@@ -43,6 +42,8 @@ export const handle: Handle = async ({ event, resolve }) => {
             headers: { Location: "/login" }
         });
     }
+
+    if (url.pathname.startsWith("/student_profile")) event.locals.student = await resolveStudent(event.locals, url.searchParams.get("id"));
 
     return await resolve(event);
 };

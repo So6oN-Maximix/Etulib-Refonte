@@ -3,8 +3,8 @@
     import { enhance } from "$app/forms";
     import { scrollSpy } from "#lib/actions/ScrollSpy";
     import { showToast } from "#lib/toast.svelte.ts";
-    import { FORMAT_LEVEL, FORMAT_MODE } from "#lib/constants";
-    import { formatDuration } from "#lib/utils";
+    import { FORMAT_LEVEL, FORMAT_MODE, FORMAT_SUBJECTS } from "#lib/constants";
+    import { formatDuration, sanitizeText } from "#lib/utils";
     import Autocomplete from "#lib/components/Autocomplete.svelte";
     import { searchCities } from "#lib/autocomplete";
     import { page } from "$app/state";
@@ -49,7 +49,7 @@
                 <li>
                     <div class="date"><b>{lesson.dateParts[1]}</b>{lesson.dateParts[0]} {lesson.dateParts[2]}</div>
                     <div class="who">
-                        <h3>{lesson.course.subject} avec {lesson.tutor.user.firstName} {lesson.tutor.user.lastName.toUpperCase()}</h3>
+                        <h3>{sanitizeText(lesson.course.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitizeText(lesson.course.subject) as keyof typeof FORMAT_SUBJECTS] : lesson.course.subject} avec {lesson.tutor.user.firstName} {lesson.tutor.user.lastName.toUpperCase()}</h3>
                         <p>{formatDuration(lesson.startDate.getHours() * 60 + lesson.startDate.getMinutes())} à {formatDuration(lesson.endDate.getHours() * 60 + lesson.endDate.getMinutes())}, {FORMAT_MODE[lesson.course.mode]}</p>
                     </div>
                     <a href="/lesson_details?id={lesson.id}" class="btn-line">Details</a>
@@ -73,7 +73,7 @@
                         <h3>{tutor.firstName} {tutor.lastName.toUpperCase()}</h3>
                         <p>{tutor.subjects.join(", ")} - {tutor.lessonCount} lesson{tutor.lessonCount > 1 ? "s" : ""}</p>
                     </div>
-                    <a href="/documents?tutorId={tutor.tutorId}" class="btn-line">Documents</a>
+                    <a href="/documents?tutorId={tutor.tutorId}&childId={data.studentId}" class="btn-line">Documents</a>
                     <a href="/tutor?id={tutor.tutorId}" class="link-quiet">Profil</a>
                 </li>
                 {/each}

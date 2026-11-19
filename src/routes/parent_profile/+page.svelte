@@ -1,9 +1,9 @@
 <script lang="ts">
     import type { PageProps } from './$types';
     import { enhance } from "$app/forms";
-    import { FORMAT_LEVEL, FORMAT_MODE } from "#lib/constants";
+    import { FORMAT_LEVEL, FORMAT_MODE, FORMAT_SUBJECTS } from "#lib/constants";
     import { scrollSpy } from "#lib/actions/ScrollSpy";
-    import { formatDuration } from '#lib/utils.ts';
+    import { formatDuration, sanitizeText } from '#lib/utils.ts';
     let { data, form }: PageProps = $props();
 
     let showForm = $state(false);
@@ -30,7 +30,7 @@
     <aside class="side-nav" aria-label="Mon espace" use:scrollSpy>
         <a href="#cours" aria-current="page">Prochains cours</a>
         <a href="#enfants">Mes enfants</a>
-        <a href="#professeurs">Mes professeurs</a>
+        <a href="#documents">Documents</a>
         <a href="#paiements">Paiements</a>
         <a href="#infos">Mes informations</a>
     </aside>
@@ -44,7 +44,7 @@
                 <li>
                     <div class="date"><b>{lesson.splitDate[1]}</b>{lesson.splitDate[0]} {lesson.splitDate[2]}</div>
                     <div class="who">
-                        <h3>{lesson.child.user.firstName}, {lesson.course.subject.toLowerCase()} avec {lesson.tutor.user.firstName} {lesson.tutor.user.lastName.toUpperCase()}</h3>
+                        <h3>{lesson.child.user.firstName}, {sanitizeText(lesson.course.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitizeText(lesson.course.subject) as keyof typeof FORMAT_SUBJECTS] : lesson.course.subject.toLowerCase()} avec {lesson.tutor.user.firstName} {lesson.tutor.user.lastName.toUpperCase()}</h3>
                         <p>{formatDuration(lesson.startDate.getHours() * 60 + lesson.startDate.getMinutes())} à {formatDuration(lesson.endDate.getHours() * 60 + lesson.endDate.getMinutes())}, {FORMAT_MODE[lesson.course.mode]}</p>
                     </div>
                     <a href="/lesson_details?id={lesson.id}" class="btn-line">Details</a>
@@ -121,9 +121,33 @@
             </form>
         </section>
 
-        <section id="professeurs">
-            <h2>Mes professeurs</h2>
-            <ul class="tutors compact"></ul>
+        <section id="documents">
+            <h2>Les documents de mes enfants</h2>
+            {#if data.childrens.length > 0}
+            <ul class="tutors compact">
+                {#each data.childrens as children}
+                <li>
+                    <span class="avatar">{(children.user.firstName[0] + children.user.lastName[0]).toUpperCase()}</span>
+                    <div class="who">
+                        <h3>{children.user.firstName} {children.user.lastName.toUpperCase()}</h3>
+                    </div>
+                    <div class="child-tutors">
+                        {#each children.tutors as tutor}
+                            <a href="/documents?tutorId={tutor.tutorId}&childId={children.id}" class="tutor-chip">
+                                {tutor.firstName} {tutor.lastName.charAt(0).toUpperCase()}.
+                            </a>
+                        {:else}
+                            <small>Aucun cours pour l'instant</small>
+                        {/each}
+                    </div>
+                </li>
+                {/each}
+            </ul>
+            {:else}
+            <div class="empty">
+                <p>Vous n'avez pas encore enregistré d'enfant.</p>
+            </div>
+            {/if}
         </section>
 
         <section id="paiements">
@@ -151,4 +175,12 @@
 
 <style>
     @import "#lib/styles/profiles.css";
+    .tutors.compact li{flex-wrap:wrap;row-gap:.5rem}
+
+    .child-tutors{display:flex;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:.4rem;margin-left:auto;max-width:55%}
+    .tutor-chip{display:inline-flex;align-items:center;padding:.35rem .75rem;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);font-size:.9rem;font-weight:500;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s}
+
+    .tutor-chip:hover{background:var(--tint);border-color:var(--ink)}
+
+    .tutor-chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 </style>

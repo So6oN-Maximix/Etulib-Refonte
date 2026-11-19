@@ -3,34 +3,10 @@ import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
 import { formatPhoneUX, formatPhoneGlobal } from "#lib/utils";
 import { summarizeTutors } from "#lib/studentTutors.ts";
+import { resolveStudent } from "#lib/server/student.ts";
 
 const LEVELS = ["PRIMAIRE", "COLLEGE", "LYCEE", "SUP"] as const;
 type Level = (typeof LEVELS)[number];
-
-async function resolveStudent(locals: App.Locals, rawId: string | null) {
-    const user = locals.user;
-    if (!user) throw error(401, "Non connecté");
-
-    if (user.role === "STUDENT") return { user, profileId: user.profileId! };
-
-    if (user.role === "PARENT") {
-        const id = Number(rawId);
-        if (!Number.isInteger(id)) throw error(400, "Identifiant invalide");
-
-        const child = await prisma.studentProfile.findFirst({
-            where: { id, parentId: user.profileId! },
-            select: {
-                id: true,
-                user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true } }
-            }
-        });
-        if (!child) throw error(403, "Accès refusé");
-
-        return { user: child.user, profileId: child.id };
-    }
-
-    throw error(403, "Accès refusé");
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
     const { user, profileId } = await resolveStudent(locals, url.searchParams.get("id"));
@@ -97,6 +73,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
     if (!studentProfile) return {
         user: { ...user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
+        studentId: profileId,
         student: { phone: "", city: "", cityName: "", level: "" },
         lessons: [],
         tutors: []
@@ -104,6 +81,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
     return {
         user: { ...user, creationDate: createdDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }) },
+        studentId: profileId,
         student: { ...studentProfile, phone: formatPhoneUX(studentProfile.phone || "") },
         lessons: formattedLessons,
         tutors: summarizeTutors(getAllLessons)

@@ -1,14 +1,15 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
+import { resolveStudent } from "#lib/server/student.ts";
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
     const idString = url.searchParams.get("id");
 
     const id = Number(idString);
     if (!idString || Number.isNaN(id)) throw error(400, "Identifiant du professeur manquant ou invalide.");
 
-    const [tutorUserProfile, tutorBio, tutorCourse, tutorExp, getAvailibilities, getTakenLessons] = await Promise.all([
+    const [tutorUserProfile, tutorBio, tutorCourse, tutorExp, getAvailibilities, getTakenLessons, getChildrens] = await Promise.all([
         prisma.user.findFirst({
             where: { tutor: { id } },
             select: { firstName: true, lastName: true, createdAt: true }
@@ -35,7 +36,13 @@ export const load: PageServerLoad = async ({ url }) => {
             where: { tutorId: id },
             select: { id: true, courseId: true, startDate: true},
             orderBy: { startDate: "asc"}
-        })
+        }),
+        locals.user?.role === "PARENT"
+            ? prisma.studentProfile.findMany({
+                where: { parentId: locals.user.profileId! },
+                select: { id: true, user: { select: { firstName: true, lastName: true } } }
+            })
+            : Promise.resolve([] as { id: number; user: { firstName: string; lastName: string } }[])
     ]);
 
     if (!tutorUserProfile) throw error(400, "Professeur introuvable");
@@ -48,15 +55,15 @@ export const load: PageServerLoad = async ({ url }) => {
         courses: tutorCourse,
         exp: tutorExp,
         availibilities: getAvailibilities,
-        takenLessons: getTakenLessons
+        takenLessons: getTakenLessons,
+        childrens: getChildrens
     };
 };
 
 export const actions: Actions = {
     reserve: async ({ request, locals, cookies }) => {
-        if (!locals.user || !["PARENT", "STUDENT"].includes(locals.user.role)) return fail(403, { action: "reserve", error: "Non autorisé" });
-
         const formData = await request.formData();
+        const { profileId: studentId } = await resolveStudent(locals, String(formData.get("childId") ?? ""));
 
         const id = Number(formData.get("courseId") ?? 0);
         const date = String(formData.get("date") ?? "").trim();
@@ -100,7 +107,7 @@ export const actions: Actions = {
             const [ , tutorInfos] = await Promise.all([
                 await prisma.lesson.create({
                     data: {
-                        studentId: locals.user.profileId!,
+                        studentId,
                         tutorId: course.tutorId,
                         courseId: id,
                         startDate,

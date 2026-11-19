@@ -3,8 +3,8 @@
     import { enhance } from "$app/forms";
     import { invalidateAll } from "$app/navigation";
     import { page } from "$app/state";
-    import { FORMAT_MODE, FORMAT_LEVEL } from "#lib/constants.ts";
-    import { formatDuration } from "#lib/utils.ts";
+    import { FORMAT_MODE, FORMAT_LEVEL, FORMAT_SUBJECTS } from "#lib/constants.ts";
+    import { formatDuration, sanitizeText } from "#lib/utils.ts";
     import { showToast } from "#lib/toast.svelte";
 
     const { data, form }: PageProps = $props();
@@ -150,7 +150,7 @@
     <aside class="booking lesson-aside visible" aria-label="Informations du cours" style="overflow-y: hidden;" id="lesson-info">
         <h3>Informations du cours</h3>
         <dl class="facts">
-            <div><dt>Matière</dt><dd>{data.lesson.course.subject} ({FORMAT_LEVEL[data.lesson.course.level].slice(3).charAt(0).toUpperCase() + FORMAT_LEVEL[data.lesson.course.level].slice(4)})</dd></div>
+            <div><dt>Matière</dt><dd>{sanitizeText(data.lesson.course.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitizeText(data.lesson.course.subject) as keyof typeof FORMAT_SUBJECTS] : data.lesson.course.subject} ({FORMAT_LEVEL[data.lesson.course.level].slice(3).charAt(0).toUpperCase() + FORMAT_LEVEL[data.lesson.course.level].slice(4)})</dd></div>
             <div><dt>Date</dt><dd>{data.lesson.textStartDate.charAt(0).toUpperCase() + data.lesson.textStartDate.slice(1)}</dd></div>
             <div><dt>Horaire</dt><dd>{formatDuration(data.lesson.startDate.getHours() * 60 + data.lesson.startDate.getMinutes())} à {formatDuration(data.lesson.endDate.getHours() * 60 + data.lesson.endDate.getMinutes())}</dd></div>
             <div><dt>Type de cours</dt><dd>{FORMAT_MODE[data.lesson.course.mode].charAt(0).toUpperCase() + FORMAT_MODE[data.lesson.course.mode].slice(1)}</dd></div>
@@ -160,7 +160,7 @@
         </dl>
         <div class="tutor-mini">
             <span class="avatar">{(data.lesson.tutor.user.firstName[0] + data.lesson.tutor.user.lastName[0]).toUpperCase()}</span>
-            <div><b>{data.lesson.tutor.user.firstName} {data.lesson.tutor.user.lastName.toUpperCase()}</b><small>Professeur de {data.lesson.course.subject.toLowerCase()}</small></div>
+            <div><b>{data.lesson.tutor.user.firstName} {data.lesson.tutor.user.lastName.toUpperCase()}</b><small>Professeur de {sanitizeText(data.lesson.course.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitizeText(data.lesson.course.subject) as keyof typeof FORMAT_SUBJECTS] : data.lesson.course.subject.toLowerCase()}</small></div>
         </div>
         <a href="/" class="btn-search" id="join-lesson">Rejoindre la séance</a>
         <a href="/tutor?id={data.lesson.tutor.id}" class="btn-line">Voir la fiche du professeur</a>
@@ -192,8 +192,8 @@
     .facts .wide dd{text-align:left}
 
     .tutor-mini{display:flex;align-items:center;gap:.8rem}
-
     .tutor-mini small{display:block;color:var(--muted)}
+    .tutor-mini .avatar{flex:none}
 
     .booking .btn-line{text-align:center}
 

@@ -5,12 +5,13 @@ declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-            user: (User & {
+            user: (Omit<User, "passwordHash"> & {
                 student?: StudentProfile | null;
                 parent?: ParentProfile | null;
                 tutor?: TutorProfile | null;
 				profileId: number | null | undefined
             }) | null;
+			student?: Awaited<ReturnType<typeof import("./lib/server/students").resolveStudent>>;
         }
 		// interface PageData {}
 		// interface PageState {}

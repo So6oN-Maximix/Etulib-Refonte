@@ -11,3 +11,9 @@ export const FORMAT_MODE = {
     "EN_LIGNE": "en ligne",
     "DOMICILE": "à domicile"
 };
+
+export const FORMAT_SUBJECTS = {
+    "sciences economiques et sociales": "SES",
+    "ses": "SES",
+    "nsi": "NSI"
+}

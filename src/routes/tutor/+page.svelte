@@ -58,6 +58,9 @@
         const modeString = FORMAT_MODE[course.mode as keyof typeof FORMAT_MODE] ?? "";
         return `${formatDuration(course.duration)} · ${modeString}`;
     }
+
+    // svelte-ignore state_referenced_locally
+    let childId = $state<number | null>(data.childrens.length === 1 ? data.childrens[0].id : null);
 </script>
 
 <section class="page-head seyes">
@@ -201,9 +204,23 @@
         <input type="hidden" name="courseId" value={selectedCourse?.id ?? ""}>
         <input type="hidden" name="date" value={slotDate}>
         <input type="hidden" name="startMin" value={slotStartMin}>
+        <input type="hidden" name="childId" value={childId ?? ""}>
 
         <h3 id="modal-title" class="full">Confirmer la réservation</h3>
         <p class="modal-summary full"><b>{selectedCourse?.title}</b><br>{slotLabel}</p>
+
+        {#if data.childrens.length > 0}
+        <fieldset class="full child-picker">
+            <legend>Pour quel enfant ?</legend>
+            {#each data.childrens as child (child.id)}
+                <label class="child-option">
+                    <input type="radio" name="child" bind:group={childId} value={child.id}>
+                    <span class="child-initials">{(child.user.firstName.charAt(0) + child.user.lastName.charAt(0)).toUpperCase()}</span>
+                    <span>{child.user.firstName} {child.user.lastName}</span>
+                </label>
+            {/each}
+        </fieldset>
+        {/if}
 
         <label class="full">
             Thème de la séance (facultatif)
@@ -218,7 +235,7 @@
 
         <div class="form-actions">
             <button type="button" class="btn-line" onclick={() => dialog?.close()}>Annuler</button>
-            <button type="submit" class="btn-search" class:is-loading={submitting} disabled={submitting}>Confirmer la réservation</button>
+            <button type="submit" class="btn-search" class:is-loading={submitting} disabled={submitting || (data.childrens.length > 0 && childId === null)}>Confirmer la réservation</button>
         </div>
     </form>
 </dialog>
@@ -431,4 +448,22 @@
     .slots a.selected{background:var(--ink);border-color:var(--ink);color:#fff}
 
     .slots a:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+    .child-picker{border:0;padding:0;margin:0;min-width:0;display:grid;grid-template-rows:repeat(2,auto);grid-auto-flow:column;grid-auto-columns:minmax(170px,1fr);gap:.5rem;overflow-x:auto}
+
+    .child-picker legend{padding:0;margin-bottom:.5rem;font-weight:600;color:var(--ink)}
+
+    .child-option{position:relative;display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;border:1px solid var(--line);border-radius:6px;cursor:pointer;font-weight:500;color:var(--ink);transition:background .15s,border-color .15s}
+
+    .child-option:hover{border-color:var(--ink);background:var(--tint)}
+
+    .child-option:has(input:checked){border-color:var(--ink);background:var(--tint);box-shadow:inset 3px 0 0 var(--ink)}
+
+    .child-option:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+
+    .child-option input{position:absolute;opacity:0;pointer-events:none}
+
+    .child-initials{display:grid;place-items:center;flex:none;width:32px;height:32px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:.8rem;font-weight:600;transition:background .15s,color .15s,border-color .15s}
+
+    .child-option:has(input:checked) .child-initials{background:var(--ink);border-color:var(--ink);color:#fff}
 </style>

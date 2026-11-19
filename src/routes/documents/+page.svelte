@@ -2,6 +2,7 @@
     import { scrollSpy } from "#lib/actions/ScrollSpy";
     import type { PageProps } from "./$types";
     import { formatDuration } from "#lib/utils.ts";
+    import { FORMAT_SUBJECTS } from "#lib/constants.ts";
 
     const { data }: PageProps = $props();
 
@@ -18,18 +19,16 @@
                 <h1>Documents</h1>
                 <p>Échangés avec {data.contact.firstName} {data.contact.lastName.toUpperCase()} · {data.totalAttachments} document{data.totalAttachments > 1 ? "s" : ""}</p>
             </div>
-            <a href="/student_profile" class="btn-line">Retour à mon espace</a>
+            <a href="/student_profile?id={data.childId}" class="btn-line">Retour à mon espace</a>
         </div>
     </div>
 </section>
 
 {#if data.totalAttachments === 0}
-<div class="container empty-page">
-    <div class="empty">
-        <h3>Aucun document échangé pour le moment</h3>
-        <p>Les exercices, corrections et supports partagés lors de vos séances avec {data.contact.firstName} apparaîtront ici.</p>
-        <a href={data.isTutor ? "/tutor_profile" : "/student_profile"} class="btn-search">Voir mes cours pour déposer un fichier</a>
-    </div>
+<div class="empty">
+    <p><b>Aucun document échangé pour l'instant.</b></p>
+    <p>Vous avez {data.lessonCount} cours {data.isTutor ? "avec cet élève" : "avec ce professeur"}. Ajoutez des exercices, des notes ou des corrigés depuis la page d'un cours.</p>
+    <a href="/lesson_details?id={data.uploadLesson.id}" class="btn-search">Ajouter un document au cours de {sanitize(data.uploadLesson.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitize(data.uploadLesson.subject) as keyof typeof FORMAT_SUBJECTS] : data.uploadLesson.subject.toLowerCase()}</a>
 </div>
 {:else}
 <div class="container layout">
@@ -130,37 +129,41 @@
         color: var(--muted);
     }
 
-    .empty-page {
-        padding-top: 3rem;
-        padding-bottom: 5rem;
-    }
-
-    .empty-page .empty {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: .75rem;
-        padding: 3rem 1.5rem;
-        background: #fff;
-    }
-
-    .empty-page .empty h3 {
-        font-size: 1.25rem;
-    }
-
-    .empty-page .empty p {
-        max-width: 460px;
-        margin-bottom: .5rem;
-    }
-
-    .empty-page .btn-search {
-        padding: .7rem 1.4rem;
-    }
-
     .no-doc-session {
         margin-top: .6rem;
         font-size: .9rem;
         font-style: italic;
         color: var(--muted);
+    }
+
+    .empty .btn-search {
+        display: inline-block;
+        margin-top: .5rem;
+        padding: .8rem 1.5rem;
+        border: 1.5px solid var(--ink);
+        border-radius: 6px;
+        box-shadow: 4px 4px 0 rgba(27, 42, 107, .22);
+        transition: transform .12s ease, box-shadow .12s ease;
+    }
+
+    .empty .btn-search:hover {
+        transform: translate(-1px, -1px);
+        box-shadow: 5px 5px 0 rgba(27, 42, 107, .3);
+    }
+
+    .empty .btn-search:active {
+        transform: translate(3px, 3px);
+        box-shadow: 1px 1px 0 rgba(27, 42, 107, .3);
+    }
+
+    .empty .btn-search:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .empty .btn-search {
+            transition: none;
+        }
     }
 </style>
