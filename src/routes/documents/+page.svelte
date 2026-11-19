@@ -64,7 +64,7 @@
                                     <div class="doc-name">{file.originalName}</div>
                                     <div class="doc-meta">Envoyé par {file.user.id === data.userId ? "vous" : file.user.firstName} · {file.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · {size(file.size)}</div>
                                 </div>
-                                <a href="/attachment?id={file.id}" class="btn-line" data-sveltekit-reload>Télécharger</a>
+                                <a href="/attachments?id={file.id}" class="btn-line" data-sveltekit-reload>Télécharger</a>
                             </li>
                             {/each}
                         </ul>

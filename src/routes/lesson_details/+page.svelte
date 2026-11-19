@@ -105,7 +105,7 @@
                         <p>Envoyé par {file.sender} le {sentOn(file.createdAt)} · {size(file.size)}</p>
                     </div>
                     <div class="course-actions">
-                        <a href="/" class="btn-line" download>Télécharger</a>
+                        <a href="/attachments?id={file.id}" class="btn-line" data-sveltekit-reload>Télécharger</a>
                         {#if file.mine}
                         <form method="POST" action="?id={lessonId}&/deleteFile" use:enhance={({ cancel }) => {
                             if (!confirm("Supprimer ce document ?")) cancel();
