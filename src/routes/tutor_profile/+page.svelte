@@ -69,6 +69,10 @@
     const shiftCalWeek = (n: number) => (calWeekStart = addDays(calWeekStart, n * 7));
 </script>
 
+<svelte:head>
+    <title>Profil professeur – Etulib</title>
+</svelte:head>
+
 <section class="page-head seyes">
     <div class="container">
         <div class="page-head-inner profile-head">

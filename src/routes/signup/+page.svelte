@@ -5,6 +5,10 @@
     let viewPassword = $state(false);
 </script>
 
+<svelte:head>
+    <title>Inscription – Etulib</title>
+</svelte:head>
+
 <section class="auth seyes">
     <div class="container">
         <div class="auth-card wide">

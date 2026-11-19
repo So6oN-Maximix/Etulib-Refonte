@@ -26,8 +26,6 @@ export async function resolveStudent(locals: App.Locals, rawId: string | null) {
                 user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true } }
             }
         });
-        const dbg = await prisma.studentProfile.findUnique({ where: { id }, select: { id: true, parentId: true } });
-        console.log("resolveStudent", { receivedChildId: id, parentProfileId: user.profileId, studentProfileInDb: dbg });
         if (!child) throw error(403, "Enfant non rattaché à ce compte");
 
         return { user: child.user, profileId: child.id };

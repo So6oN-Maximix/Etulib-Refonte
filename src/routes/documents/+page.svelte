@@ -1,14 +1,18 @@
 <script lang="ts">
     import { scrollSpy } from "#lib/actions/ScrollSpy";
     import type { PageProps } from "./$types";
-    import { formatDuration } from "#lib/utils.ts";
+    import { formatDuration, sanitizeText } from "#lib/utils.ts";
     import { FORMAT_SUBJECTS } from "#lib/constants.ts";
 
     const { data }: PageProps = $props();
 
-    const sanitize = (text: String) => text.replace("é", "e").replace("è", "e");
+    const anchor = (text: string) => "matiere-" + text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const size = (bytes: number) => bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " Ko" : (bytes / 1024 / 1024).toFixed(1).replace(".", ",") + " Mo";
 </script>
+
+<svelte:head>
+    <title>Documents – Etulib</title>
+</svelte:head>
 
 <section class="page-head seyes">
     <div class="container">
@@ -28,19 +32,19 @@
 <div class="empty">
     <p><b>Aucun document échangé pour l'instant.</b></p>
     <p>Vous avez {data.lessonCount} cours {data.isTutor ? "avec cet élève" : "avec ce professeur"}. Ajoutez des exercices, des notes ou des corrigés depuis la page d'un cours.</p>
-    <a href="/lesson_details?id={data.uploadLesson.id}" class="btn-search">Ajouter un document au cours de {sanitize(data.uploadLesson.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitize(data.uploadLesson.subject) as keyof typeof FORMAT_SUBJECTS] : data.uploadLesson.subject.toLowerCase()}</a>
+    <a href="/lesson_details?id={data.uploadLesson.id}" class="btn-search">Ajouter un document au cours de {sanitizeText(data.uploadLesson.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitizeText(data.uploadLesson.subject) as keyof typeof FORMAT_SUBJECTS] : data.uploadLesson.subject.toLowerCase()}</a>
 </div>
 {:else}
 <div class="container layout">
     <aside class="side-nav" aria-label="Matières" use:scrollSpy>
         {#each data.attachments as attachment, index}
-        <a href="#{sanitize(attachment.subject.toLowerCase())}" aria-current={index === 0 ? "page" : null}>{attachment.subject} <span class="count">{attachment.attachmentCount}</span></a>
+        <a href="#{anchor(attachment.subject)}" aria-current={index === 0 ? "page" : null}>{sanitizeText(attachment.subject) in FORMAT_SUBJECTS ? FORMAT_SUBJECTS[sanitizeText(attachment.subject) as keyof typeof FORMAT_SUBJECTS] : attachment.subject} <span class="count">{attachment.attachmentCount}</span></a>
         {/each}
     </aside>
 
     <div class="account">
         {#each data.attachments as attachment}
-        <section id="{sanitize(attachment.subject.toLowerCase())}">
+        <section id="{anchor(attachment.subject)}">
             <h2>{attachment.subject}</h2>
             <ul class="sessions">
                 {#each attachment.lessons as lesson}
@@ -60,7 +64,7 @@
                                     <div class="doc-name">{file.originalName}</div>
                                     <div class="doc-meta">Envoyé par {file.user.id === data.userId ? "vous" : file.user.firstName} · {file.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} · {size(file.size)}</div>
                                 </div>
-                                <a href="/" class="btn-line" download>Télécharger</a>
+                                <a href="/attachment?id={file.id}" class="btn-line" data-sveltekit-reload>Télécharger</a>
                             </li>
                             {/each}
                         </ul>

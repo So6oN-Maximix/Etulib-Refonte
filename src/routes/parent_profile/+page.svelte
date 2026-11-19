@@ -13,6 +13,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>Profil parent – Etulib</title>
+</svelte:head>
+
 <section class="page-head seyes">
     <div class="container">
         <div class="page-head-inner profile-head">

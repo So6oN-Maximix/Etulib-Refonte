@@ -19,6 +19,10 @@
     let cityPicked = $state(data.student.cityName ?? "");
 </script>
 
+<svelte:head>
+    <title>Profil élève – Etulib</title>
+</svelte:head>
+
 <section class="page-head seyes">
     <div class="container">
         <div class="page-head-inner profile-head">

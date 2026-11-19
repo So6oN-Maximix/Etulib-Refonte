@@ -31,6 +31,10 @@
     }
 </script>
 
+<svelte:head>
+    <title>Recherche – Etulib</title>
+</svelte:head>
+
 <section class="page-head seyes">
     <div class="container">
         <div class="page-head-inner">

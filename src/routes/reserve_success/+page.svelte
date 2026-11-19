@@ -4,6 +4,10 @@
     let { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+    <title>Confirmation de réservation – Etulib</title>
+</svelte:head>
+
 <section class="auth seyes" style="padding: 1rem 0; width: 100%; min-height: auto;">
     <div class="container" style="display: flex; justify-content: center;">
         

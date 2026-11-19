@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { PageProps } from "./$types";
     import { enhance } from "$app/forms";
-    import { invalidateAll } from "$app/navigation";
     import { page } from "$app/state";
     import { FORMAT_MODE, FORMAT_LEVEL, FORMAT_SUBJECTS } from "#lib/constants.ts";
     import { formatDuration, sanitizeText } from "#lib/utils.ts";
@@ -37,6 +36,10 @@
         input.form?.requestSubmit();
     }
 </script>
+
+<svelte:head>
+    <title>Détails leçon – Etulib</title>
+</svelte:head>
 
 <section class="page-head seyes" id="header">
     <div class="container">

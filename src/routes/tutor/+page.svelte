@@ -63,6 +63,10 @@
     let childId = $state<number | null>(data.childrens.length === 1 ? data.childrens[0].id : null);
 </script>
 
+<svelte:head>
+    <title>Fiche professeur – Etulib</title>
+</svelte:head>
+
 <section class="page-head seyes">
     <div class="container">
         <div class="page-head-inner profile-head">
