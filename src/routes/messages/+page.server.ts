@@ -1,7 +1,7 @@
-import { error } from "@sveltejs/kit";
+import { error, fail } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
-import type { PageServerLoad } from "./$types";
-import { decryptMessage } from "#lib/server/crypto.ts";
+import type { PageServerLoad, Actions } from "./$types";
+import { decryptMessage, encryptMessage } from "#lib/server/crypto.ts";
 import { formatMsgDate } from "#lib/utils.ts";
 
 async function loadMessages(convId: number) {
@@ -108,9 +108,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
     const infoById = Object.fromEntries(infos.map((info) => [info.id, info]));
 
-    const entries = await Promise.all(
-        getConversations.map(async (conv) => [conv.id, await loadMessages(conv.id)] as const)
-    );
+    const entries = await Promise.all(getConversations.map(async (conv) => [conv.id, await loadMessages(conv.id)] as const));
     const messagesByConvId = Object.fromEntries(entries);
 
     return {
@@ -127,4 +125,26 @@ export const load: PageServerLoad = async ({ locals }) => {
             };
         })
     };
+};
+
+export const actions: Actions = {
+    sendMsg: async ({ request, locals }) => {
+        const formData = await request.formData();
+
+        const message = String(formData.get("message") ?? "").trim();
+        const convId = Number(formData.get("convId") ?? 0);
+
+        if (!convId || convId === 0) return fail(400, { error: "Conversation introuvable" });
+
+        try {
+            await prisma.message.create({
+                data: {
+                    conversationId: convId,
+                    body: encryptMessage(message, convId),
+                    senderId: locals.user?.profileId!
+                }
+            });
+            return { success: true };
+        } catch (error) { throw error }
+    }
 };

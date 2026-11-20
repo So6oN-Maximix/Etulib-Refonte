@@ -1,11 +1,15 @@
 <script lang="ts">
+    import { enhance } from "$app/forms";
     import type { PageProps } from "./$types";
+    import { showToast } from "#lib/toast.svelte.ts";
 
     let { data }: PageProps = $props();
-    console.log(data);
 
-    let selectedConvId = $state<number | string | null>(null);
     let showMsg = $state(false);
+    let messageText = $state("");
+    
+    let selectedConvId = $state<number | null>(null);
+    const selectedConv = $derived(data.conversations.find(conv => conv.id === selectedConvId) ?? null);
 </script>
 
 <svelte:head>
@@ -35,8 +39,8 @@
                         <small> · {conv.childName}</small>
                         {/if}
                     </span>
-                    <span class="t-time">{conv.lastMsg.sendTime}</span>
-                    <span class="t-preview">{conv.lastMsg.body.replace("<b>", "").replace("</b>", "")}</span>
+                    <span class="t-time">{conv.lastMsg?.sendTime ?? ""}</span>
+                    <span class="t-preview">{conv.lastMsg?.body.replace("<b>", "").replace("</b>", "") ?? ""}</span>
                 </a>
             </li>
             {/each}
@@ -46,51 +50,75 @@
         {/if}
     </aside>
 
-    <section class="thread" aria-label="Conversation">
-        {#if selectedConvId}
+    <section class="thread" class:read-only={selectedConv?.readOnly} aria-label="Conversation">
+    {#if selectedConv}
         <div class="thread-head">
             <button type="button" class="thread-back" id="thread-back" aria-label="Retour aux conversations">←</button>
             <span class="avatar">CM</span>
             <div><b>Camille M.</b><small>Professeure de mathématiques · Cours de Léa</small></div>
             <a href="/tutor?id=1" class="link-quiet">Voir la fiche</a>
         </div>
-        <p class="thread-note" hidden>En tant que parent, vous voyez les échanges de Léa avec son professeur.</p>
+
+        {#if selectedConv.readOnly}
+            <p class="thread-note">En tant que parent, vous voyez les échanges de {selectedConv.childName} avec son professeur.</p>
         {/if}
 
         <div class="chat" id="chat" aria-live="polite">
-            {#if selectedConvId}
-            <p>MESSAGES</p>
-            {:else}
+            {#each selectedConv.messages as msg (msg.id)}
+                {#if msg.senderId === 0}
+                    <div class="system-event">
+                        <span>{@html msg.body}</span>
+                    </div>
+                {:else}
+                    <div class="msg {data.user?.profileId === msg.senderId ? "out" : "in"}">
+                        {msg.body}
+                        <time>{msg.sendTime}</time>
+                    </div>
+                {/if}
+            {/each}
+        </div>
+
+        <form method="POST" action="?/sendMsg" class="composer" use:enhance={() => {
+            return async ({ result, update }) => {
+                if (result.type === "failure") {
+                    showToast("Erreur lors de l'envoi du message", "error");
+                    return;
+                }
+                update({ reset: false });
+                messageText = "";
+            };
+        }}>
+            <div id="attach-preview" class="attachment-preview"></div>
+            <div class="composer-inputs">
+                <button type="button" class="btn-line">Joindre</button>
+                <input type="file" id="msg-file" multiple hidden>
+                <textarea name="message" rows="1" bind:value={messageText} placeholder="Écrire un message…" aria-label="Votre message"></textarea>
+                <input name="convId" type="text" value={selectedConvId} hidden>
+                <button type="submit" class="btn-search">Envoyer</button>
+            </div>
+        </form>
+    {:else}
+        <div class="chat" id="chat" aria-live="polite">
             <div class="chat-empty" id="chat-select">
                 <span class="chat-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.6A8 8 0 1 1 21 12z"/></svg></span>
                 <p><b>Sélectionnez une conversation</b></p>
                 <p>Cliquez sur une conversation à gauche pour afficher vos messages.</p>
             </div>
-            {/if}
         </div>
-
-        {#if selectedConvId}
-        <form class="composer">
-            <div id="attach-preview" class="attachment-preview"></div>
-
-            <div class="composer-inputs">
-                <button type="button" class="btn-line" id="attach-btn">Joindre</button>
-                <input type="file" id="msg-file" multiple hidden>
-                <textarea name="message" rows="1" placeholder="Écrire un message…" aria-label="Votre message"></textarea>
-                <button type="submit" class="btn-search">Envoyer</button>
-            </div>
-        </form>
-        {/if}
+    {/if}
     </section>
 </div>
 
 <style>
-    /* messagerie plein écran, façon Messenger */
-    body.messages-page{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
-
-    .messages-main{flex:1;min-height:0;display:grid;grid-template-rows:minmax(0,1fr)}
-
-    .inbox{display:grid;grid-template-columns:340px minmax(0,1fr);grid-template-rows:minmax(0,1fr);min-height:0;background:#fff;overflow:hidden}
+    .inbox {
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr);
+        height: calc(100dvh - 90px);
+        min-height: 0;
+        background: #fff;
+        overflow: hidden;
+    }
 
     /* liste des conversations */
     .inbox-side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}

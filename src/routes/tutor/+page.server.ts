@@ -131,7 +131,8 @@ export const actions: Actions = {
                 data: {
                     conversationId: getConversation.id,
                     senderId: 0,
-                    body: encryptMessage(systemMessageText, getConversation.id)
+                    body: encryptMessage(systemMessageText, getConversation.id),
+                    isRead: true
                 }
             });
             
