@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { refreshAll } from "$app/navigation";
     import { enhance } from "$app/forms";
     import type { PageProps } from "./$types";
     import { showToast } from "#lib/toast.svelte.ts";
@@ -10,6 +11,24 @@
     
     let selectedConvId = $state<number | null>(null);
     const selectedConv = $derived(data.conversations.find(conv => conv.id === selectedConvId) ?? null);
+    let readConvIds = $state<number[]>([]);
+
+    async function selectConversation(conv: (typeof data.conversations)[number]) {
+        selectedConvId = conv.id;
+
+        if (conv.unread > 0 && !conv.readOnly && !readConvIds.includes(conv.id)) {
+            readConvIds = [...readConvIds, conv.id];
+
+            const formData = new FormData();
+            formData.append("convId", String(conv.id));
+
+            await fetch("?/markAsRead", {
+                method: "POST",
+                body: formData
+            });
+            await refreshAll();
+        }
+    }
 </script>
 
 <svelte:head>
@@ -27,10 +46,9 @@
             {#each data.conversations as conv}
             {@const isSelected = selectedConvId === conv.id}
             <li>
-                <a href="/" aria-current={isSelected ? "true" : undefined} onclick={event => {
+                <a href="/" class:unread={conv.unread > 0} aria-current={isSelected ? "true" : undefined} onclick={event => {
                     event.preventDefault();
-                    selectedConvId = conv.id;
-                    showMsg = true;
+                    selectConversation(conv);
                 }}>
                     <span class="avatar">{(conv.userInfo.user.firstName[0] + conv.userInfo.user.lastName[0]).toUpperCase()}</span>
                     <span class="t-name">
@@ -41,6 +59,9 @@
                     </span>
                     <span class="t-time">{conv.lastMsg?.sendTime ?? ""}</span>
                     <span class="t-preview">{conv.lastMsg?.body.replace("<b>", "").replace("</b>", "") ?? ""}</span>
+                    {#if conv.unread > 0}
+                    <span class="badge">{conv.unread}</span>
+                    {/if}
                 </a>
             </li>
             {/each}
@@ -59,7 +80,9 @@
                 <b>{selectedConv.userInfo.user.firstName} {selectedConv.userInfo.user.lastName.toUpperCase()}</b>
                 <small>{selectedConv.userType}{selectedConv.childName ? ` · Cours de ${selectedConv.childName}` : ""}</small>
             </div>
-            <a href="/tutor?id=1" class="link-quiet">Voir la fiche</a>
+            {#if selectedConv.userType === "Professeur"}
+                <a href="/tutor?id={selectedConv.userId}" class="link-quiet">Voir la fiche</a>
+            {/if}
         </div>
 
         {#if selectedConv.readOnly}

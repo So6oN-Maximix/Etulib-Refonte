@@ -16,7 +16,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<Header user={data.user} />
+<Header user={data.user} unread={data.unread} />
 
 <main>
 	{@render children()}

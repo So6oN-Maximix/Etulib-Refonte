@@ -1,7 +1,6 @@
 <script lang="ts">
-    import { enhance } from "$app/forms";
     import logoSvg from "#lib/assets/favicon.svg";
-    let { user } = $props();
+    let { user, unread } = $props();
 </script>
 
 <header class="site-header">
@@ -18,7 +17,12 @@
 		</nav>
 		<div class="auth-buttons ready">
             {#if user}
-                <a href="/messages" class="nav-messages">Messages</a>
+                <a href="/messages" class="nav-messages">
+                    Messages
+                    {#if unread > 0}
+                    <span class="badge">{unread}</span>
+                    {/if}
+                </a>
                 <a href="/{user.role.toLowerCase()}_profile" class="btn-signup">Mon espace</a>
                 <a href="/logout" class="btn-logout" data-sveltekit-preload-data="false">Se déconnecter</a>
             {:else}
