@@ -53,9 +53,12 @@
     <section class="thread" class:read-only={selectedConv?.readOnly} aria-label="Conversation">
     {#if selectedConv}
         <div class="thread-head">
-            <button type="button" class="thread-back" id="thread-back" aria-label="Retour aux conversations">←</button>
-            <span class="avatar">CM</span>
-            <div><b>Camille M.</b><small>Professeure de mathématiques · Cours de Léa</small></div>
+            <button type="button" class="thread-back" aria-label="Retour aux conversations">←</button>
+            <span class="avatar">{(selectedConv.userInfo.user.firstName[0] + selectedConv.userInfo.user.lastName[0]).toUpperCase()}</span>
+            <div>
+                <b>{selectedConv.userInfo.user.firstName} {selectedConv.userInfo.user.lastName.toUpperCase()}</b>
+                <small>{selectedConv.userType}{selectedConv.childName ? ` · Cours de ${selectedConv.childName}` : ""}</small>
+            </div>
             <a href="/tutor?id=1" class="link-quiet">Voir la fiche</a>
         </div>
 

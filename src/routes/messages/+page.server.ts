@@ -73,6 +73,7 @@ export const load: PageServerLoad = async ({ locals }) => {
                 lastMsg: buildLastMsg(conv.messages[0], conv.id),
                 userId: conv.tutorId,
                 userInfo: tutorById[conv.tutorId],
+                userType: "Professeur",
                 childName: childNamesById[conv.studentId] ?? "",
                 messages: messagesByConvId[conv.id] ?? [],
                 readOnly: true
@@ -119,6 +120,7 @@ export const load: PageServerLoad = async ({ locals }) => {
                 lastMsg: buildLastMsg(conv.messages[0], conv.id),
                 userId: otherId,
                 userInfo: infoById[otherId],
+                userType: isTutor ? "Eleve" : "Professeur",
                 messages: messagesByConvId[conv.id] ?? [],
                 readOnly: false,
                 childName: ""
