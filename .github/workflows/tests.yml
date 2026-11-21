@@ -24,6 +24,8 @@ jobs:
         run: npm ci
 
       - name: Générer les types Prisma et SvelteKit
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
         run: |
           npx prisma generate --generator client
           npx svelte-kit sync
