@@ -12,7 +12,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
     const unreadMessagesCount = await prisma.message.count({
         where: {
             isRead: false,
-            senderId: { notIn: [0, locals.user.id] },
+            senderId: { notIn: [0, locals.user.profileId] },
             conversation: locals.user.role === "TUTOR"
                 ? { tutorId: locals.user.profileId }
                 : { studentId: locals.user.profileId }

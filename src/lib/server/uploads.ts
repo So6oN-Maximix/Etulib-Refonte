@@ -25,19 +25,20 @@ export function detectType(content: Buffer, fileName: string): string | null {
 
 export function cleanFileName(name: string): string { return name.replace(/[\\/\u0000-\u001f]/g, "_").trim().slice(-120) || "document"; }
 
-const uploadDir = () => join(UPLOAD_DIR || join(process.cwd(), "uploads"), "lessons");
+const uploadDir = (scope: "lessons" | "messages" = "lessons") => join(UPLOAD_DIR || join(process.cwd(), "uploads"), scope);
 
-export async function saveEncrypted(content: Buffer, lessonId: number): Promise<string> {
+export async function saveEncrypted(content: Buffer, contextId: number, scope: "lessons" | "messages" = "lessons"): Promise<string> {
     const filename = `${randomUUID()}.enc`;
-    await mkdir(uploadDir(), { recursive: true });
-    await writeFile(join(uploadDir(), filename), encryptFile(content, lessonId), { flag: "wx", mode: 0o600 });
+    const dir = uploadDir(scope)
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, filename), encryptFile(content, contextId), { flag: "wx", mode: 0o600 });
     return filename;
 }
 
-export async function readDecrypted(filename: string, lessonId: number): Promise<Buffer> {
-    return decryptFile(await readFile(join(uploadDir(), basename(filename))), lessonId);
+export async function readDecrypted(filename: string, contextId: number, scope: "lessons" | "messages" = "lessons"): Promise<Buffer> {
+    return decryptFile(await readFile(join(uploadDir(scope), basename(filename))), contextId);
 }
 
-export async function removeStored(filename: string): Promise<void> {
-    await rm(join(uploadDir(), basename(filename)), { force: true });
+export async function removeStored(filename: string, scope: "lessons" | "messages" = "lessons"): Promise<void> {
+    await rm(join(uploadDir(scope), basename(filename)), { force: true });
 }

@@ -12,15 +12,66 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
     const attachment = await prisma.attachment.findUnique({
         where: { id },
-        select: { filename: true, originalName: true, mimeType: true, lessonId: true }
+        select: {
+            filename: true,
+            originalName: true,
+            mimeType: true,
+            lessonId: true,
+            message: {
+                select: {
+                    conversationId: true,
+                    conversation: {
+                        select: {
+                            tutorId: true,
+                            studentId: true
+                        }
+                    }
+                }
+            }
+        }
     });
-    if (!attachment || attachment.lessonId == null) throw error(404, "Document introuvable");
-    const lessonId: number = attachment.lessonId;
-    if (!attachment || !(await getLessonAccess(locals.user, lessonId))) throw error(404, "Document introuvable");
+    if (!attachment) throw error(404, "404-1: Document introuvable");
 
     let content: Buffer;
-    try { content = await readDecrypted(attachment.filename, lessonId); }
-    catch { throw error(500, "Impossible de lire ce document"); }
+
+    if (attachment.lessonId != null) {
+        if (!(await getLessonAccess(locals.user, attachment.lessonId))) throw error(404, "Document introuvable");
+        try { content = await readDecrypted(attachment.filename, attachment.lessonId, "lessons"); }
+        catch { throw error(500, "Impossible de lire ce document"); }
+    } else if (attachment.message) {
+        const { conversationId, conversation } = attachment.message;
+        const { role, profileId } = locals.user;
+
+        let hasAccess =
+            (role === "TUTOR" && conversation.tutorId === profileId) ||
+            (role === "STUDENT" && conversation.studentId === profileId);
+
+        if (!hasAccess && role === "PARENT" && profileId) {
+            const child = await prisma.studentProfile.findFirst({
+                where: { id: conversation.studentId, parentId: profileId },
+                select: { id: true }
+            });
+            hasAccess = Boolean(child);
+        }
+
+        if (!hasAccess) {
+            console.log("DEBUG 404-2:", { role, profileId, conversation });
+            throw error(404, "404-2: Document introuvable");
+        }
+
+        try { content = await readDecrypted(attachment.filename, conversationId, "messages"); }
+        catch (err) {
+            console.error("Erreur lecture pièce jointe message:", {
+                err,
+                filename: attachment.filename,
+                conversationId
+            });
+            throw error(500, "Impossible de lire ce document");
+        }
+    } else {
+        console.log("DEBUG 404-3:", attachment);
+        throw error(404, "404-3: Document introuvable");
+    }
 
     const asciiName = attachment.originalName.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
 

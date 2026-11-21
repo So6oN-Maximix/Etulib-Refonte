@@ -1,19 +1,35 @@
 import { error, fail } from "@sveltejs/kit";
 import { prisma } from "#lib/server/prisma";
 import type { PageServerLoad, Actions } from "./$types";
-import { decryptMessage, encryptMessage } from "#lib/server/crypto.ts";
-import { formatMsgDate } from "#lib/utils.ts";
+import { decryptMessage, encryptMessage } from "#lib/server/crypto";
+import { formatMsgDate } from "#lib/utils";
+import { MAX_FILE_SIZE, MAX_FILES_PER_UPLOAD, cleanFileName, detectType, removeStored, saveEncrypted } from "#lib/server/uploads";
 
 async function loadMessages(convId: number) {
     const messages = await prisma.message.findMany({
         where: { conversationId: convId },
-        select: { id: true, senderId: true, body: true, isRead: true, createdAt: true },
+        select: {
+            id: true,
+            senderId: true,
+            body: true,
+            isRead: true,
+            createdAt: true,
+            attachments: {
+                select: {
+                    id: true,
+                    originalName: true,
+                    filename: true,
+                    mimeType: true,
+                    size: true
+                }
+            }
+        },
         orderBy: { createdAt: "asc" }
     });
 
-    return messages.map((msg) => ({
+    return messages.map(msg => ({
         ...msg,
-        body: decryptMessage(msg.body, convId),
+        body: msg.body ? decryptMessage(msg.body, convId) : "",
         sendTime: formatMsgDate(msg.createdAt)
     }));
 }
@@ -135,23 +151,55 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
     sendMsg: async ({ request, locals }) => {
+        if (!locals.user || !locals.user.profileId || locals.user.role === "PARENT") return fail(403, { message: "Non autorisé" });
         const formData = await request.formData();
+        const convId = Number(formData.get("convId"));
+        const text = String(formData.get("message") ?? "").trim();
+        const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
 
-        const message = String(formData.get("message") ?? "").trim();
-        const convId = Number(formData.get("convId") ?? 0);
-
+        if (!text && files.length === 0) return fail(400, { message: "Message vide" });
         if (!convId || convId === 0) return fail(400, { error: "Conversation introuvable" });
+        if (files.length > MAX_FILES_PER_UPLOAD) return fail(400, { message: "Trop de fichiers" });
+
+        const savedAttachments: {
+            originalName: string;
+            filename: string;
+            mimeType: string;
+            size: number;
+            user: { connect: { id: number } };
+        }[] = [];
 
         try {
+            for (const file of files) {
+                if (file.size > MAX_FILE_SIZE) { throw new Error("Fichier trop volumineux"); }
+                const buffer = Buffer.from(await file.arrayBuffer());
+                const mimeType = detectType(buffer, file.name);
+                if (!mimeType) { throw new Error("Type de fichier non autorisé"); }
+
+                const filename = await saveEncrypted(buffer, convId, "messages");
+                savedAttachments.push({
+                    originalName: cleanFileName(file.name),
+                    filename,
+                    mimeType,
+                    size: buffer.length,
+                    user: { connect: { id: locals.user.id } }
+                });
+            }
+
             await prisma.message.create({
                 data: {
                     conversationId: convId,
-                    body: encryptMessage(message, convId),
-                    senderId: locals.user?.profileId!
+                    body: text ? encryptMessage(text, convId) : "",
+                    senderId: locals.user.profileId,
+                    attachments: savedAttachments.length > 0 ? { create: savedAttachments } : undefined
                 }
             });
+
             return { success: true };
-        } catch (error) { throw error }
+        } catch (err) {
+            await Promise.all(savedAttachments.map(att => removeStored(att.filename, "messages")));
+            return fail(400, { message: err instanceof Error ? err.message : "Erreur lors de l'envoi" });
+        }
     },
     markAsRead: async ({ request, locals }) => {
         if (!locals.user || locals.user.role === "PARENT") return { success: true };

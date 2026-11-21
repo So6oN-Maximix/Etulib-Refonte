@@ -1,12 +1,13 @@
 <script lang="ts">
+    import { tick } from "svelte";
     import { refreshAll } from "$app/navigation";
     import { enhance } from "$app/forms";
     import type { PageProps } from "./$types";
     import { showToast } from "#lib/toast.svelte.ts";
+    import { MIME_LABELS } from "#lib/constants.ts";
 
     let { data }: PageProps = $props();
 
-    let showMsg = $state(false);
     let messageText = $state("");
     
     let selectedConvId = $state<number | null>(null);
@@ -29,6 +30,81 @@
             await refreshAll();
         }
     }
+
+    let chatContainer = $state<HTMLDivElement | null>(null);
+    async function scrollToBottom(smooth = false) {
+        await tick();
+        if (!chatContainer) return;
+
+        chatContainer.scrollTo({
+            top: chatContainer.scrollHeight,
+            behavior: smooth ? "smooth" : "instant"
+        });
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            if (!messageText.trim() && attachedFiles.length <= 0) return;
+
+            const form = (event.currentTarget as HTMLTextAreaElement).form;
+            form?.requestSubmit();
+        }
+    }
+
+    interface AttachedItem {
+        id: string;
+        file: File;
+        previewUrl: string | null;
+    }
+
+    let fileInput = $state<HTMLInputElement | null>(null);
+    let attachedFiles = $state<AttachedItem[]>([]);
+
+    function formatFileSize(bytes: number): string {
+        if (bytes < 1024) return `${bytes} o`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
+    }
+
+    function handleFilesSelected(event: Event) {
+        const input = event.currentTarget as HTMLInputElement;
+        if (!input.files?.length) return;
+
+        const newItems: AttachedItem[] = Array.from(input.files).map((file) => ({
+            id: crypto.randomUUID(),
+            file,
+            previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : null
+        }));
+
+        attachedFiles = [...attachedFiles, ...newItems];
+        input.value = "";
+    }
+
+    function removeAttachment(id: string) {
+        const target = attachedFiles.find((item) => item.id === id);
+        if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+        attachedFiles = attachedFiles.filter((item) => item.id !== id);
+    }
+
+    function clearAttachments() {
+        for (const item of attachedFiles) {
+            if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+        }
+        attachedFiles = [];
+    }
+
+    function formatSize(bytes: number) { return bytes < 1024 * 1024 ? Math.round(bytes / 1024) + " Ko" : (bytes / 1024 / 1024).toFixed(1).replace(".", ",") + " Mo"; }
+
+    function isSameDay(a: Date | string, b: Date | string): boolean {
+        const d1 = new Date(a);
+        const d2 = new Date(b);
+        return (
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate()
+        );
+    }
 </script>
 
 <svelte:head>
@@ -46,9 +122,10 @@
             {#each data.conversations as conv}
             {@const isSelected = selectedConvId === conv.id}
             <li>
-                <a href="/" class:unread={conv.unread > 0} aria-current={isSelected ? "true" : undefined} onclick={event => {
+                <a href="/" class:unread={conv.unread > 0} aria-current={isSelected ? "true" : undefined} onclick={async event => {
                     event.preventDefault();
                     selectConversation(conv);
+                    await scrollToBottom(true);
                 }}>
                     <span class="avatar">{(conv.userInfo.user.firstName[0] + conv.userInfo.user.lastName[0]).toUpperCase()}</span>
                     <span class="t-name">
@@ -89,8 +166,16 @@
             <p class="thread-note">En tant que parent, vous voyez les échanges de {selectedConv.childName} avec son professeur.</p>
         {/if}
 
-        <div class="chat" id="chat" aria-live="polite">
-            {#each selectedConv.messages as msg (msg.id)}
+        <div class="chat" id="chat" bind:this={chatContainer} aria-live="polite">
+            {#each selectedConv.messages as msg, index (msg.id)}
+                {@const prevMsg = selectedConv.messages[index - 1]}
+                {@const showDaySep = !prevMsg || !isSameDay(prevMsg.createdAt, msg.createdAt)}
+
+                {#if showDaySep}
+                    {@const formattedDate = msg.createdAt.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+                    <p class="day-sep">{formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)}</p>
+                {/if}
+
                 {#if msg.senderId === 0}
                     <div class="system-event">
                         <span>{@html msg.body}</span>
@@ -98,27 +183,58 @@
                 {:else}
                     <div class="msg {data.user?.profileId === msg.senderId ? "out" : "in"}">
                         {msg.body}
+                        {#each msg.attachments as attachment}
+                            <div class="msg-file">
+                                <span class="file-ext">{MIME_LABELS[attachment.mimeType as keyof typeof MIME_LABELS]}</span>
+                                <div class="file-meta">
+                                    <a href="/attachments?id={attachment.id}" data-sveltekit-reload>{attachment.originalName}</a>
+                                    <p class="file-size">{formatSize(attachment.size)}</p>
+                                </div>
+                            </div>
+                        {/each}
                         <time>{msg.sendTime}</time>
                     </div>
                 {/if}
             {/each}
         </div>
 
-        <form method="POST" action="?/sendMsg" class="composer" use:enhance={() => {
+        <form method="POST" action="?/sendMsg" enctype="multipart/form-data" class="composer" use:enhance={({ formData }) => {
+            for (const item of attachedFiles) formData.append("files", item.file);
             return async ({ result, update }) => {
                 if (result.type === "failure") {
                     showToast("Erreur lors de l'envoi du message", "error");
                     return;
                 }
-                update({ reset: false });
+                await update({ reset: false });
                 messageText = "";
+                clearAttachments();
+                await scrollToBottom(true);
             };
         }}>
-            <div id="attach-preview" class="attachment-preview"></div>
+            <div id="attach-preview" class="attachment-preview">
+            {#each attachedFiles as item (item.id)}
+                <div class="preview-file" class:is-image={Boolean(item.previewUrl)}>
+                    {#if item.previewUrl}
+                        <img src={item.previewUrl} alt={item.file.name} class="preview-thumb" />
+                    {:else}
+                        <div class="file-meta">
+                            <span class="file-name">{item.file.name}</span>
+                            <small class="file-size">{formatFileSize(item.file.size)}</small>
+                        </div>
+                    {/if}
+                    <button
+                        type="button"
+                        class="remove-file-btn"
+                        aria-label="Retirer {item.file.name}"
+                        onclick={() => removeAttachment(item.id)}
+                    >×</button>
+                </div>
+            {/each}
+            </div>
             <div class="composer-inputs">
-                <button type="button" class="btn-line">Joindre</button>
-                <input type="file" id="msg-file" multiple hidden>
-                <textarea name="message" rows="1" bind:value={messageText} placeholder="Écrire un message…" aria-label="Votre message"></textarea>
+                <button type="button" class="btn-line" onclick={() => fileInput?.click()}>Joindre</button>
+                <input type="file" bind:this={fileInput} onchange={handleFilesSelected} multiple hidden>
+                <textarea name="message" rows="1" bind:value={messageText} onkeydown={handleKeydown} placeholder="Écrire un message…" aria-label="Votre message"></textarea>
                 <input name="convId" type="text" value={selectedConvId} hidden>
                 <button type="submit" class="btn-search">Envoyer</button>
             </div>
@@ -256,8 +372,6 @@
     @media (max-width:800px) {
         .inbox{grid-template-columns:1fr}
         .thread{display:none}
-        .inbox.open .inbox-side{display:none}
-        .inbox.open .thread{display:flex}
         .thread-back{display:block}
     }
 
@@ -275,15 +389,8 @@
         max-width: 90%;
     }
 
-    .system-event b {
-        color: var(--ink);
-        font-weight: 600;
-    }
-
     /* conversation vide */
     .chat-empty{margin:auto;max-width:340px;padding:1rem;text-align:center;color:var(--muted)}
-
-    .chat-empty[hidden]{display:none}
 
     .chat-empty b{font-family:"Bricolage Grotesque",sans-serif;font-size:1.15rem;color:var(--ink)}
 
