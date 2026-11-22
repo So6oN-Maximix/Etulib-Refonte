@@ -9,10 +9,12 @@
 
 import "dotenv/config";
 import bcrypt from "bcrypt";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { generateTutors, EMAIL_DOMAIN } from "./seedData";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
     if (process.env.NODE_ENV === "production") throw new Error("Seed refusé en production.");
@@ -25,14 +27,14 @@ async function main() {
         select: { id: true, tutor: { select: { id: true } } }
     });
     if (old.length > 0) {
-        const tutorIds = old.flatMap((u) => (u.tutor ? [u.tutor.id] : []));
+        const tutorIds = old.flatMap(u => (u.tutor ? [u.tutor.id] : []));
         await prisma.$transaction([
             prisma.lesson.deleteMany({ where: { tutorId: { in: tutorIds } } }),
             prisma.course.deleteMany({ where: { tutorId: { in: tutorIds } } }),
             prisma.availibility.deleteMany({ where: { tutorId: { in: tutorIds } } }),
             prisma.experience.deleteMany({ where: { tutorId: { in: tutorIds } } }),
             prisma.tutorProfile.deleteMany({ where: { id: { in: tutorIds } } }),
-            prisma.user.deleteMany({ where: { id: { in: old.map((u) => u.id) } } })
+            prisma.user.deleteMany({ where: { id: { in: old.map(u => u.id) } } })
         ]);
         console.log(`${old.length} ancien(s) prof(s) de test supprimé(s).`);
     }
@@ -65,7 +67,7 @@ async function main() {
 }
 
 main()
-    .catch((e) => {
+    .catch(e => {
         console.error(e);
         process.exitCode = 1;
     })

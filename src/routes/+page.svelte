@@ -1,3 +1,13 @@
+<script lang="ts">
+    import Autocomplete from "#lib/components/Autocomplete.svelte";
+    import { searchCities, searchSubjects } from "#lib/autocomplete";
+    
+    let course = $state("");
+    let cityName = $state("");
+    let cityCode = $state("");
+    let cityPicked = $state("");
+</script>
+
 <svelte:head>
     <title>Etulib</title>
 </svelte:head>
@@ -8,15 +18,15 @@
             <h1>Révélez votre potentiel avec le bon professeur.</h1>
             <p>Réservez des cours de soutien scolaire en ligne ou près de chez vous, en quelques clics et en toute confiance.</p>
 
-            <form class="search-box" role="search" id="research-form">
-                <label class="field">
+            <form method="GET" action="/research" class="search-box" role="search" id="research-form">
+                <label class="field" style="position: relative;">
                     <span>Matière</span>
-                    <input type="text" placeholder="Maths, anglais, philosophie…" name="course">
+                    <Autocomplete bind:value={course} search={searchSubjects} id="course-input" name="course" minChars={1} debounceMs={0} placeholder="Maths, anglais, philosophie…" />
                 </label>
                 <label class="field" style="position: relative;">
                     <span>Lieu</span>
-                    <input type="text" id="city-input" placeholder="Ville, code postal ou en ligne" autocomplete="off" name="location">
-                    <ul id="city-suggestions" class="suggestions-list" hidden></ul>
+                    <Autocomplete bind:value={cityName} search={searchCities} id="city-input" name="cityName" placeholder="Ville, code postal ou en ligne" onselect={option => { cityCode = option.key; cityPicked = option.label; }}/>
+                    <input type="hidden" name="location" value={cityName === cityPicked ? cityCode : ""}>
                 </label>
                 <button type="submit" class="btn-search">Rechercher</button>
             </form>
