@@ -186,6 +186,15 @@ export const actions: Actions = {
                 });
             }
 
+            const conv = await prisma.conversation.findFirst({
+                where: {
+                    id: convId,
+                    OR: [{ tutorId: locals.user.profileId }, { studentId: locals.user.profileId }]
+                },
+                select: { id: true }
+            });
+            if (!conv) return fail(403, { message: "Conversation introuvable" });
+
             await prisma.message.create({
                 data: {
                     conversationId: convId,

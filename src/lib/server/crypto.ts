@@ -38,22 +38,23 @@ function getFileKey(): Buffer {
     fileKey ??= Buffer.from(hkdfSync("sha256", getMasterKey(), Buffer.alloc(0), "etulib:lesson-files:v1", 32));
     return fileKey;
 }
+export type FileScope = "lessons" | "messages"
 
 const FILE_VERSION = 1;
 const HEADER = 1 + 12 + 16;
 
-export function encryptFile(plain: Buffer, lessonId: number): Buffer {
+export function encryptFile(plain: Buffer, id: number, scope: FileScope = "lessons"): Buffer {
     const iv = randomBytes(12);
     const cipher = createCipheriv("aes-256-gcm", getFileKey(), iv);
-    cipher.setAAD(Buffer.from(`lesson:${lessonId}`));
+    cipher.setAAD(Buffer.from(`${scope}:${id}`));
     const data = Buffer.concat([cipher.update(plain), cipher.final()]);
     return Buffer.concat([Buffer.from([FILE_VERSION]), iv, cipher.getAuthTag(), data]);
 }
 
-export function decryptFile(stored: Buffer, lessonId: number): Buffer {
+export function decryptFile(stored: Buffer, id: number, scope: FileScope = "lessons"): Buffer {
     if (stored.length < HEADER || stored[0] !== FILE_VERSION) throw new Error("Fichier chiffré invalide ou version inconnue");
     const decipher = createDecipheriv("aes-256-gcm", getFileKey(), stored.subarray(1, 13));
-    decipher.setAAD(Buffer.from(`lesson:${lessonId}`));
+    decipher.setAAD(Buffer.from(`${scope}:${id}`));
     decipher.setAuthTag(stored.subarray(13, HEADER));
     return Buffer.concat([decipher.update(stored.subarray(HEADER)), decipher.final()]);
 }

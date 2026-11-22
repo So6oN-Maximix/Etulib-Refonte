@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { UPLOAD_DIR } from "$app/env/private";
-import { decryptFile, encryptFile } from "./crypto";
+import { decryptFile, encryptFile, type FileScope } from "./crypto";
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 Mo
 export const MAX_FILES_PER_UPLOAD = 10;
@@ -25,20 +25,16 @@ export function detectType(content: Buffer, fileName: string): string | null {
 
 export function cleanFileName(name: string): string { return name.replace(/[\\/\u0000-\u001f]/g, "_").trim().slice(-120) || "document"; }
 
-const uploadDir = (scope: "lessons" | "messages" = "lessons") => join(UPLOAD_DIR || join(process.cwd(), "uploads"), scope);
+const uploadDir = (scope: FileScope = "lessons") => join(UPLOAD_DIR || join(process.cwd(), "uploads"), scope);
 
-export async function saveEncrypted(content: Buffer, contextId: number, scope: "lessons" | "messages" = "lessons"): Promise<string> {
+export async function saveEncrypted(content: Buffer, contextId: number, scope: FileScope = "lessons"): Promise<string> {
     const filename = `${randomUUID()}.enc`;
     const dir = uploadDir(scope)
     await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, filename), encryptFile(content, contextId), { flag: "wx", mode: 0o600 });
+    await writeFile(join(dir, filename), encryptFile(content, contextId, scope), { flag: "wx", mode: 0o600 });
     return filename;
 }
 
-export async function readDecrypted(filename: string, contextId: number, scope: "lessons" | "messages" = "lessons"): Promise<Buffer> {
-    return decryptFile(await readFile(join(uploadDir(scope), basename(filename))), contextId);
-}
+export async function readDecrypted(filename: string, contextId: number, scope: FileScope = "lessons"): Promise<Buffer> { return decryptFile(await readFile(join(uploadDir(scope), basename(filename))), contextId, scope); }
 
-export async function removeStored(filename: string, scope: "lessons" | "messages" = "lessons"): Promise<void> {
-    await rm(join(uploadDir(scope), basename(filename)), { force: true });
-}
+export async function removeStored(filename: string, scope: FileScope = "lessons"): Promise<void> { await rm(join(uploadDir(scope), basename(filename)), { force: true }); }

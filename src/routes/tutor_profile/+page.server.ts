@@ -158,7 +158,7 @@ export const actions: Actions = {
         
         try {
             await prisma.experience.update({
-                where: { id },
+                where: { id, tutorId: locals.user.profileId! },
                 data: {
                     title,
                     location,
@@ -227,7 +227,7 @@ export const actions: Actions = {
         
         try {
             await prisma.course.update({
-                where: { id },
+                where: { id, tutorId: locals.user.profileId! },
                 data: {
                     tutorId: locals.user.profileId!,
                     title,

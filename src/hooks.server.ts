@@ -33,13 +33,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
 
     const url = event.url;
-    const protectedRoutes = ["/parent_profile", "/student_profile", "/tutor_profile"];
-    const isProtected = protectedRoutes.some(route => url.pathname.startsWith(route));
+    const publicRoutes = ["/", "/login", "/signup", "/research", "/tutor"];
+    const isPublic = publicRoutes.some(route => url.pathname === route || url.pathname.startsWith(`${route}/`));
 
-    if (isProtected && !event.locals.user) {
+    if (!isPublic && !event.locals.user) {
         return new Response(null, {
             status: 303,
-            headers: { Location: "/login" }
+            headers: { Location: "/" }
         });
     }
 
