@@ -3,32 +3,31 @@ import type { Handle } from "@sveltejs/kit/hooks";
 import { resolveStudent } from "#lib/server/student.ts";
 
 export const handle: Handle = async ({ event, resolve }) => {
-    const userIdStr = event.cookies.get("user_id");
+    const token = event.cookies.get("session");
     event.locals.user = null;
 
-    if (userIdStr) {
-        const userId = Number(userIdStr);
-
-        if (!Number.isNaN(userId)) {
-            const user = await prisma.user.findUnique({
-                where: { id: userId },
-                include: {
-                    student: true,
-                    parent: true,
-                    tutor: true
+    if (token) {
+        const session = await prisma.session.findUnique({
+            where: { id: token },
+            include: {
+                user: {
+                    include: { student: true, parent: true, tutor: true }
                 }
-            });
-
-            if (user) {
-                let profileId = null;
-                
-                if (user.role === "PARENT") profileId = user.parent?.id;
-                else if (user.role === "STUDENT") profileId = user.student?.id;
-                else if (user.role === "TUTOR") profileId = user.tutor?.id;
-
-                const { passwordHash, ...safeUser } = user;
-                event.locals.user = { ...safeUser, profileId };
             }
+        });
+
+        if (session && session.expiresAt > new Date()) {
+            const { user } = session;
+            let profileId = null;
+            if (user.role === "PARENT") profileId = user.parent?.id;
+            else if (user.role === "STUDENT") profileId = user.student?.id;
+            else if (user.role === "TUTOR") profileId = user.tutor?.id;
+
+            const { passwordHash, ...safeUser } = user;
+            event.locals.user = { ...safeUser, profileId };
+        } else if (session) {
+            await prisma.session.delete({ where: { id: token } });
+            event.cookies.delete("session", { path: "/" });
         }
     }
 

@@ -2,6 +2,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import bcrypt from "bcrypt";
 import { prisma } from "#lib/server/prisma";
 import type { Actions } from "./$types";
+import { randomBytes } from "node:crypto";
 
 const ROLES = ["parent", "student", "tutor"] as const;
 type Role = (typeof ROLES)[number];
@@ -47,13 +48,18 @@ export const actions: Actions = {
 				},
 				select: { id: true }
 			});
+			
+			const token = randomBytes(32).toString("hex");
+			const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-            cookies.set("user_id", String(userAddedId.id), {
+			await prisma.session.create({ data: { id: token, userId: userAddedId.id, expiresAt } });
+
+            cookies.set("session", token, {
                 path: "/",
                 httpOnly: true,
                 sameSite: "lax",
                 secure: process.env.NODE_ENV === "production",
-                maxAge: 60 * 60 * 24
+                maxAge: 60 * 60 * 24 * 7
             });
 		} catch (error) {
 			if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") return fail(400, { error: "Un compte existe déjà avec cet e-mail.", values });
