@@ -2,18 +2,28 @@ import type { PageServerLoad } from "./$types";
 import { prisma } from "#lib/server/prisma";
 import { searchSubjects } from "#lib/autocomplete";
 import { getNextAvailableSlot } from "#lib/utils";
+import { getNearbyCityCodes } from "#lib/server/geo";
 
 const PAGE_SIZE = 10;
+const ALLOWED_RADIUS = new Set([0, 5, 10, 20, 50]);
 
 export const load: PageServerLoad = async ({ url }) => {
     const course = (url.searchParams.get("course") ?? "").trim().slice(0, 100);
     const location = (url.searchParams.get("location") ?? "").trim().slice(0, 10);
     const cityName = (url.searchParams.get("cityName") ?? "").trim().slice(0, 100);
+    const rawRadius = Number(url.searchParams.get("radius"));
+    const radius = ALLOWED_RADIUS.has(rawRadius) ? rawRadius : 10;
 
     const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
 
+    let cityFilter = {};
+    if (location) {
+        const cityCodes = await getNearbyCityCodes(location, radius);
+        cityFilter = { city: { in: cityCodes } };
+    }
+
     const profiles = await prisma.tutorProfile.findMany({
-        where: location ? { city: location } : {},
+        where: cityFilter,
         select: { id: true, userId: true, bio: true }
     });
 
@@ -108,9 +118,10 @@ export const load: PageServerLoad = async ({ url }) => {
     const tutors = allTutors.slice(start, start + PAGE_SIZE);
 
     return {
-        query: { course, location, cityName },
+        query: { course, location, cityName, radius: String(radius) },
         total: matching.length,
-        tutors,pagination: {
+        tutors,
+        pagination: {
             currentPage,
             totalPages
         }

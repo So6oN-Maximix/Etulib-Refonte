@@ -1,3 +1,7 @@
+<svelte:head>
+    <title>Etulib</title>
+</svelte:head>
+
 <section class="hero">
     <div class="container">
         <div class="hero-content">

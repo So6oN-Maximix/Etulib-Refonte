@@ -16,19 +16,24 @@
     // svelte-ignore state_referenced_locally
     let cityPicked = $state(data.query.cityName);
 
-    $effect(() => {
-        course = data.query.course;
-        city = data.query.cityName;
-        cityCode = data.query.location;
-        cityPicked = data.query.cityName;
-    });
-
     function getPageUrl(targetPage: number) {
         const url = new URL(page.url.href);
         if (targetPage <= 1) url.searchParams.delete("page");
         else url.searchParams.set("page", String(targetPage));
         return `${url.pathname}${url.search}`;
     }
+
+    // svelte-ignore state_referenced_locally
+    let radius = $state(data.query.radius ?? "10");
+    const hasCity = $derived(city.trim().length > 0 && city.trim().toLowerCase() !== "en ligne");
+
+    $effect(() => {
+        course = data.query.course;
+        city = data.query.cityName;
+        cityCode = data.query.location;
+        cityPicked = data.query.cityName;
+        radius = data.query.radius ?? "10";
+    });
 </script>
 
 <svelte:head>
@@ -50,6 +55,18 @@
                         onselect={option => { cityCode = option.key; cityPicked = option.label; }} />
                     <input type="hidden" name="location" value={city === cityPicked ? cityCode : ""}>
                 </label>
+                {#if hasCity}
+                    <label class="field radius-field">
+                        <span>Rayon</span>
+                        <select name="radius" bind:value={radius} aria-label="Rayon de recherche autour de la ville">
+                            <option value="0">0 km</option>
+                            <option value="5">+ 5 km</option>
+                            <option value="10">+ 10 km</option>
+                            <option value="20">+ 20 km</option>
+                            <option value="50">+ 50 km</option>
+                        </select>
+                    </label>
+                {/if}
                 <button type="submit" class="btn-search">Rechercher</button>
             </form>
         </div>
@@ -81,7 +98,11 @@
 
     <section class="results" aria-live="polite">
         <div class="results-bar">
-            <p><b>{data.total} professeur{data.total > 1 ? "s" : ""}</b>{data.query.course ? ` de ${data.query.course.toLowerCase()}` : ""}{data.query.cityName ? ` à ${data.query.cityName}` : ""}</p>
+            <p>
+                <b>{data.total} professeur{data.total > 1 ? "s" : ""}</b>
+                {data.query.course ? ` de ${data.query.course.toLowerCase()}` : ""}
+                {data.query.cityName ? ` à ${data.query.cityName}${Number(data.query.radius) > 0 ? ` (+ ${data.query.radius} km)` : ""}` : ""}
+            </p>
             <label>Trier par
                 <select><option>Pertinence</option><option>Prix croissant</option><option>Meilleure note</option><option>Disponibilité</option></select>
             </label>
