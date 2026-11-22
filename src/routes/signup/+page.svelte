@@ -2,7 +2,12 @@
     import { enhance } from "$app/forms";
     let { form } = $props();
     let role = $state("parent");
+    let errorMsg = $state("");
     let viewPassword = $state(false);
+
+    $effect(() => {
+        errorMsg = form?.error ?? "";
+    });
 </script>
 
 <svelte:head>
@@ -15,7 +20,7 @@
             <span class="note">Bienvenue !</span>
             <h1>Créer un compte</h1>
             <form method="POST" use:enhance class="form" id="signup-form">
-                <fieldset class="choice full"><legend>Je suis</legend>
+                <fieldset class="choice full" onchange={() => (errorMsg = "")}><legend>Je suis</legend>
                     <label><input type="radio" value="parent" name="role" bind:group={role}> Parent</label>
                     <label><input type="radio" value="student" name="role" bind:group={role}> Élève</label>
                     <label><input type="radio" value="tutor" name="role" bind:group={role}> Tuteur</label>
@@ -40,8 +45,8 @@
                 <div class="auth-row full">
                     <label><input type="checkbox" required> J'accepte les <a href="/">conditions d'utilisation</a></label>
                 </div>
-                {#if form?.error}
-                    <p class="form-msg full" role="alert">{form.error}</p>
+                {#if errorMsg}
+                    <p class="form-msg full" role="alert">{errorMsg}</p>
                 {/if}
                 <button type="submit" class="btn-search">Créer mon compte</button>
             </form>

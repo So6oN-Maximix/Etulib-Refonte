@@ -7,6 +7,20 @@ import { randomBytes } from "node:crypto";
 const ROLES = ["parent", "student", "tutor"] as const;
 type Role = (typeof ROLES)[number];
 
+function isAdult(birthDate: Date | string, referenceDate: Date = new Date()): boolean {
+    const birth = typeof birthDate === "string" ? new Date(birthDate) : birthDate;
+    if (Number.isNaN(birth.getTime())) return false;
+
+    const age = referenceDate.getFullYear() - birth.getFullYear();
+    const monthDiff = referenceDate.getMonth() - birth.getMonth();
+    const dayDiff = referenceDate.getDate() - birth.getDate();
+
+    if (age > 18) return true;
+    if (age < 18) return false;
+
+    return monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0);
+}
+
 export const actions: Actions = {
 	default: async ({ request, cookies }) => {
 		const data = await request.formData();
@@ -30,6 +44,7 @@ export const actions: Actions = {
 		if (role === "student") {
 			birthDate = new Date(birthDateRaw);
 			if (!birthDateRaw || Number.isNaN(birthDate.getTime())) return fail(400, { error: "Date de naissance invalide.", values });
+			if (!isAdult(birthDate)) return fail(400, { error: "Vous devez être majeur pour créer un compte élève seul. Veuillez créer un compte parent d'abord", values });
 		}
 
 		const passwordHash = await bcrypt.hash(password, 12);
